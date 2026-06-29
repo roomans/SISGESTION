@@ -1,0 +1,30 @@
+import { useMemo, useState } from "react";
+import { RotateCcw, Save, X } from "lucide-react";
+import { api } from "../../services/api";
+
+function InventoryWasteDrawer({ stockByLot = [], loggedUser, onClose, onSaved }) {
+  const [form, setForm] = useState({ stock_key: "", quantity: "", reason_code: "WASTE_DAMAGE", notes: "" });
+  const [saving, setSaving] = useState(false);
+  const selectedStock = useMemo(() => {
+    if (!form.stock_key) return null;
+    const [ingredientId, lotId, warehouseId, locationId, unitId] = form.stock_key.split("|").map(Number);
+    return stockByLot.find((item) => Number(item.ingredient_id) === ingredientId && Number(item.lot_id) === lotId && Number(item.warehouse_id) === warehouseId && Number(item.location_id) === locationId && Number(item.unit_id) === unitId);
+  }, [form.stock_key, stockByLot]);
+  const inputClass = "w-full rounded-xl px-4 py-2.5 text-sm bg-tanta-bg/80 dark:bg-[#2a1b30] border border-tanta-primary/20 dark:border-tanta-primary/25 outline-none focus:border-tanta-primary/60 transition";
+  const Field = ({ label, children }) => <div className="space-y-1.5"><label className="text-xs font-medium opacity-75">{label}</label>{children}</div>;
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedStock || !form.quantity) { alert("Selecciona un lote con stock y una cantidad."); return; }
+    if (Number(form.quantity) <= 0) { alert("La cantidad debe ser mayor a cero."); return; }
+    if (Number(form.quantity) > Number(selectedStock.stock_quantity)) { alert("La merma no puede ser mayor al stock del lote."); return; }
+    try {
+      setSaving(true);
+      await api.post("/inventory/waste", { ingredient_id: selectedStock.ingredient_id, lot_id: selectedStock.lot_id, warehouse_id: selectedStock.warehouse_id, location_id: selectedStock.location_id, unit_id: selectedStock.unit_id, quantity: Number(form.quantity), reason_code: form.reason_code, notes: form.notes || null, created_by: loggedUser?.user_id || 1 });
+      await onSaved?.();
+    } catch (error) { console.error("Error registrando merma:", error); alert(error.response?.data?.message || error.response?.data?.error || "Error registrando merma"); }
+    finally { setSaving(false); }
+  };
+  return <div className="fixed inset-0 z-50"><div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} /><aside className="absolute right-0 top-0 h-full w-full sm:w-[520px] xl:w-[620px] bg-[#F3EFDC] dark:bg-[#160f1b] border-l border-tanta-primary/25 shadow-2xl overflow-y-auto custom-scrollbar"><div className="sticky top-0 z-10 bg-[#F3EFDC]/95 dark:bg-[#160f1b]/95 backdrop-blur border-b border-tanta-primary/20 px-5 py-4 flex items-center justify-between"><div><p className="text-xs font-semibold text-red-600 dark:text-red-300">Inventario</p><h3 className="text-xl font-bold flex items-center gap-2"><RotateCcw size={20} />Registrar merma</h3></div><button type="button" onClick={onClose} className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-tanta-primary/10 transition"><X size={20} /></button></div><form onSubmit={handleSubmit} className="p-5 space-y-4"><section className="rounded-2xl p-4 bg-[#F3EFDC]/65 dark:bg-[#1b1120]/65 border border-tanta-primary/15"><h4 className="text-sm font-semibold text-tanta-secondary dark:text-[#f0b36d] mb-4">Lote afectado</h4><div className="space-y-3"><Field label="Lote con stock"><select value={form.stock_key} onChange={(e) => setForm({ ...form, stock_key: e.target.value })} className={inputClass}><option value="">Seleccionar lote</option>{stockByLot.filter((item) => Number(item.stock_quantity) > 0).map((item) => <option key={`${item.ingredient_id}|${item.lot_id}|${item.warehouse_id}|${item.location_id}|${item.unit_id}`} value={`${item.ingredient_id}|${item.lot_id}|${item.warehouse_id}|${item.location_id}|${item.unit_id}`}>{item.ingredient_code} - {item.ingredient_name} | Lote: {item.lot_code} | Stock: {item.stock_quantity} {item.unit_code}</option>)}</select></Field>{selectedStock && <div className="rounded-xl p-4 bg-tanta-primary/10 border border-tanta-primary/15 text-sm"><p><span className="font-semibold">Insumo:</span> {selectedStock.ingredient_name}</p><p><span className="font-semibold">Lote:</span> {selectedStock.lot_code}</p><p><span className="font-semibold">Stock disponible:</span> {selectedStock.stock_quantity} {selectedStock.unit_code}</p><p><span className="font-semibold">Vencimiento:</span> {selectedStock.expiration_date || "-"}</p></div>}</div></section><section className="rounded-2xl p-4 bg-[#F3EFDC]/65 dark:bg-[#1b1120]/65 border border-tanta-primary/15"><h4 className="text-sm font-semibold text-tanta-secondary dark:text-[#f0b36d] mb-4">Detalle de merma</h4><div className="space-y-3"><Field label="Motivo"><select value={form.reason_code} onChange={(e) => setForm({ ...form, reason_code: e.target.value })} className={inputClass}><option value="WASTE_DAMAGE">Merma por daño</option><option value="WASTE_EXPIRED">Merma por vencimiento</option></select></Field><Field label="Cantidad"><input type="number" step="0.000001" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className={inputClass} /></Field><Field label="Notas"><textarea rows="3" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={`${inputClass} resize-none`} placeholder="Detalle de la merma" /></Field></div></section><div className="sticky bottom-0 bg-[#F3EFDC]/90 dark:bg-[#160f1b]/90 backdrop-blur pt-3 pb-1 flex gap-3"><button type="submit" disabled={saving} className="flex-1 bg-red-600 text-white rounded-xl px-5 py-3 text-sm flex items-center justify-center gap-2 hover:scale-[1.01] shadow-lg shadow-red-500/20 transition disabled:opacity-60"><Save size={17} />{saving ? "Guardando..." : "Registrar merma"}</button><button type="button" onClick={onClose} className="rounded-xl px-5 py-3 text-sm border border-tanta-primary/30 hover:bg-tanta-primary/10 transition">Cancelar</button></div></form></aside></div>;
+}
+
+export default InventoryWasteDrawer;
