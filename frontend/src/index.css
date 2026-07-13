@@ -1,206 +1,269 @@
-/* ========================= */
-/* FUENTES PERSONALIZADAS */
-/* ========================= */
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-@font-face {
-  font-family: "ArtGalleria";
-  src: url("./assets/fonts/Art Galleria.otf") format("opentype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
 }
 
-@font-face {
-  font-family: "Montserrat";
-  src: url("./assets/fonts/Montserrat-Medium.ttf") format("truetype");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
 
-/* ========================= */
-/* TAILWIND */
-/* ========================= */
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ========================= */
-/* BASE GLOBAL */
-/* ========================= */
-
-html {
-  font-family: "Montserrat", system-ui, sans-serif;
-  scroll-behavior: smooth;
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
 }
 
 body {
   margin: 0;
-  padding: 0;
+}
+
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 h1,
-h2,
-h3,
-.brand-title {
-  font-family: "ArtGalleria", cursive;
-  letter-spacing: 0.5px;
-}
-
-h4,
-h5,
-p,
-span,
-button,
-input,
-td,
-th,
-label {
-  font-family: "Montserrat", sans-serif;
-}
-
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease,
-    border-color 0.3s ease;
-}
-
-::selection {
-  background-color: #d18b49;
-  color: white;
-}
-
-.dark body {
-  background-color: #26172c;
-}
-
-/* ========================= */
-/* SCROLLBAR GLOBAL */
-/* ========================= */
-
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(243, 239, 220, 0.45);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #d18b49, #c97847);
-  border-radius: 999px;
-  border: 2px solid rgba(243, 239, 220, 0.8);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #c97847, #d18b49);
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: rgba(38, 23, 44, 0.75);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #d18b49, #56599a);
-  border: 2px solid rgba(30, 20, 34, 0.95);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #f0b36d, #56599a);
-}
-
-/* ========================= */
-/* SCROLLBAR PARA TABLAS */
-/* ========================= */
-
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #d18b49 rgba(243, 239, 220, 0.7);
-  padding-bottom: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  height: 12px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(236, 201, 169, 0.35);
-  border-radius: 999px;
-  margin: 0 16px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #d18b49, #c97847);
-  border-radius: 999px;
-  border: 3px solid rgba(243, 239, 220, 0.95);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, #c97847, #d18b49);
-}
-
-.dark .custom-scrollbar {
-  scrollbar-color: #d18b49 rgba(30, 20, 34, 0.9);
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(86, 89, 154, 0.18);
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #d18b49, #56599a);
-  border: 3px solid rgba(30, 20, 34, 0.95);
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, #f0b36d, #56599a);
-}
-
-/* ========================= */
-/* EFECTOS VISUALES */
-/* ========================= */
-
-.glow {
-  box-shadow: 0 0 20px rgba(209, 139, 73, 0.25);
-}
-
-.dark .glow {
-  box-shadow: 0 0 25px rgba(209, 139, 73, 0.35);
-}
-
-.card-soft {
-  background: rgba(243, 239, 220, 0.7);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-}
-
-.dark .card-soft {
-  background: rgba(30, 20, 34, 0.8);
-}
-
-.gradient-soft {
-  background: linear-gradient(135deg, #ecc9a9, #f3d7bd, #f8ead7);
-}
-
-.dark .gradient-soft {
-  background: linear-gradient(135deg, #26172c, #33203a, #1b1020);
-}
-
-input::placeholder {
-  opacity: 0.6;
-}
-
-button {
+h2 {
+  font-family: var(--heading);
   font-weight: 500;
-  letter-spacing: 0.3px;
+  color: var(--text-h);
 }
 
-th {
-  font-weight: 600;
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
+
+
+
+.form-grid{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.form-row{
+    display:grid;
+    grid-template-columns:180px 1fr;
+    align-items:flex-start;
+}
+
+.form-row strong{
+    font-weight:600;
+}
+
+.form-row span{
+    color:#333;
+    word-break:break-word;
+}
+
+
+.modal-consulta-documento{
+
+    width:760px;
+
+    max-width:90%;
+
+}
+
+.consulta-header{
+
+    margin-bottom:25px;
+
+}
+
+.consulta-header h2{
+
+    margin:0;
+
+}
+
+.consulta-grid{
+
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:18px 40px;
+
+}
+
+.consulta-item{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.consulta-item label{
+
+    font-size:13px;
+
+    font-weight:700;
+
+    color:#6b7280;
+
+    margin-bottom:6px;
+
+}
+
+.consulta-item span{
+
+    padding-bottom:8px;
+
+    border-bottom:1px solid #ececec;
+
+}
+
+.consulta-observacion{
+
+    margin-top:25px;
+
+}
+
+.consulta-observacion label{
+
+    font-size:13px;
+
+    font-weight:bold;
+
+}
+
+.observacion-box{
+
+    margin-top:8px;
+
+    min-height:80px;
+
+    border:1px solid #dcdcdc;
+
+    border-radius:8px;
+
+    padding:12px;
+
+    background:#fafafa;
+
+}
+
+.consulta-footer{
+
+    margin-top:25px;
+
+    display:flex;
+
+    justify-content:flex-end;
+
+}
+
+.badge-success{
+
+    display:inline-block;
+
+    width:max-content;
+
+    padding:4px 12px;
+
+    border-radius:18px;
+
+    background:#DCFCE7;
+
+    color:#166534;
+
+    font-weight:600;
+
+}
+
+.badge-danger{
+
+    display:inline-block;
+
+    width:max-content;
+
+    padding:4px 12px;
+
+    border-radius:18px;
+
+    background:#FEE2E2;
+
+    color:#991B1B;
+
+    font-weight:600;
+
 }

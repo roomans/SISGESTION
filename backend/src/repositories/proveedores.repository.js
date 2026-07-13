@@ -1,0 +1,266 @@
+const pool = require('../config/db');
+
+const listar = async () => {
+    const sql = `SELECT	MPRO.proveedor_id::varchar PROVEEDOR_ID
+							,MLV.DESCRIPCION TIPO_DOCUMENTO
+							,MPRO.nro_documento NRO_DOCUMENTO
+							,CASE 
+								WHEN MPRO.razon_social IS NOT NULL
+									AND TRIM(MPRO.razon_social) <> ''
+									THEN MPRO.razon_social
+								ELSE TRIM(COALESCE(MPRO.nombre, '') || ' ' || COALESCE(MPRO.apellido_paterno, '') || ' ' || COALESCE(MPRO.apellido_materno, ''))
+							END proveedor
+							,MPRO.correo CORREO
+							,MPRO.telefono TELEFONO
+							,MPRO.calificacion CALIFICACION
+							,MPRO.STATUS STATUS
+							,MPRO.ubigeo UBIGEO
+							,MPRO.departamento DEPARTAMENTO   -- Campo agregado
+							,MPRO.provincia PROVINCIA         -- Campo agregado
+							,MPRO.ciudad CIUDAD               -- Campo agregado
+							,MPRO.direccion DIRECCION         -- Campo agregado
+							,MPRO.ciiu||'-'||MLV_CIUU.descripcion actividad_economica
+							,COALESCE(SU.primer_ingreso, 'N') permiso_edicion -- Recuperamos 'H' o 'L' desde la relación (ajusta el nombre de tu columna si es necesario)
+							,(	SELECT count(*)
+								FROM 	"SISGES"."MOV_DOCUMENTOS" MDOC 		
+								WHERE	MDOC.proveedor_id::varchar = MPRO.proveedor_id::varchar
+								AND		MDOC.estado_documento = 'C') doc_vencidos	
+					 FROM	"SISGES"."MAE_PROVEEDOR" MPRO
+					 LEFT JOIN  "SISGES"."SEG_USUARIO" SU ON SU.proveedor_id = MPRO.proveedor_id
+					 LEFT JOIN 	"SISGES"."MAE_LISTA_VALORES" MLV ON MLV.CODIGO_VALOR = MPRO.TIPO_DOCUMENTO and MLV.cod_grupo = '0001' and MLV.tipo_grupo = 'TIPO_DOC_SUNAT'
+					 LEFT JOIN 	"SISGES"."MAE_LISTA_VALORES" MLV_CIUU ON MLV_CIUU.CODIGO_VALOR = MPRO.ciiu and MLV_CIUU.cod_grupo = '0002' and MLV_CIUU.tipo_grupo = 'CODIGO_CIIU_SUNAT'
+					 ORDER BY MPRO.create_date DESC, MPRO.proveedor_id DESC`;
+		const result = await pool.query(sql);
+		return result.rows;
+};
+
+const obtenerPorId = async (proveedorId) => {
+    const sql = `
+        SELECT	p.*,
+        ciiu.descripcion AS descripcion_ciiu,
+		tipo_doc.descripcion AS descripcion_tipo_documento,
+		status_prov.descripcion AS descripcion_status_prov
+FROM 	"SISGES"."MAE_PROVEEDOR" p
+LEFT JOIN "SISGES"."MAE_LISTA_VALORES" ciiu ON ciiu.cod_grupo = '0002' AND ciiu.tipo_grupo = 'CODIGO_CIIU_SUNAT' AND ciiu.codigo_valor::varchar =  p.ciiu::varchar
+LEFT JOIN "SISGES"."MAE_LISTA_VALORES" tipo_doc ON tipo_doc.cod_grupo = '0001' AND tipo_doc.tipo_grupo = 'TIPO_DOC_SUNAT' AND tipo_doc.codigo_valor::varchar =  p.tipo_documento::varchar
+LEFT JOIN "SISGES"."MAE_LISTA_VALORES" status_prov ON status_prov.cod_grupo = '0000' AND status_prov.tipo_grupo = 'STATUS_PROVEEDOR' AND status_prov.codigo_valor::varchar =  p.status::varchar
+WHERE p.proveedor_id::varchar = $1::varchar
+    `;
+
+    const result = await pool.query(sql, [proveedorId]);
+    return result.rows[0];
+};
+
+const existeProveedor = async (tipoDocumento, nroDocumento) => {
+    const sql = `
+        SELECT proveedor_id::varchar
+        FROM "SISGES"."MAE_PROVEEDOR"
+        WHERE tipo_documento = $1
+        AND nro_documento = $2
+    `;
+
+    const result = await pool.query(sql, [tipoDocumento, nroDocumento]);
+    return result.rows[0];
+};
+
+const crear = async (proveedor) => {
+    // Volvemos a la secuencia autoincremental para el proveedor_id numérico
+    const sql = `
+        INSERT INTO "SISGES"."MAE_PROVEEDOR"
+        (
+            proveedor_id,
+            tipo_documento,
+            nro_documento,
+            nombre,
+            apellido_paterno,
+            apellido_materno,
+            razon_social,
+            departamento,
+            provincia,
+            ciudad,
+            direccion,
+            ubigeo,
+            correo,
+            telefono,
+            pagina_web,
+            ciiu,
+            calificacion,
+            representante_legal,
+            status,
+            create_date,
+            create_by
+        )
+        VALUES
+        (
+            nextval('"SISGES".seq_proveedor_id'),
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 
+            $11, $12, $13, $14, $15, $16, $17, $18,
+            CURRENT_DATE,
+            $19
+        )
+        RETURNING proveedor_id
+    `;
+
+    const values = [
+        proveedor.tipo_documento,
+        proveedor.nro_documento,
+        proveedor.nombre,
+        proveedor.apellido_paterno,
+        proveedor.apellido_materno,
+        proveedor.razon_social,
+        proveedor.departamento,
+        proveedor.provincia,
+        proveedor.ciudad,
+        proveedor.direccion,
+        proveedor.ubigeo,
+        proveedor.correo,
+        proveedor.telefono,
+        proveedor.pagina_web,
+        proveedor.ciiu,
+        proveedor.calificacion || 'R',
+        proveedor.representante_legal,
+        proveedor.status || 'A',
+        proveedor.create_by
+    ];
+
+    // 1. Insertamos el proveedor y recuperamos el ID numérico generado por la secuencia
+    const result = await pool.query(sql, values);
+    const nuevoIdGenerado = result.rows[0].proveedor_id;
+
+    // 2. Vinculación automática en la tabla de seguridad usando el ID entero obtenido
+    if (proveedor.usuario_id) {
+        const sqlSeguridad = `
+            UPDATE "SISGES"."SEG_USUARIO"
+            SET proveedor_id = $1,
+                primer_ingreso = 'N'
+            WHERE usuario_id = $2
+        `;
+        await pool.query(sqlSeguridad, [nuevoIdGenerado, proveedor.usuario_id]);
+    }
+
+    return result.rows[0];
+};
+
+const actualizar = async (proveedorId, proveedor) => {
+    const sql = `
+        UPDATE "SISGES"."MAE_PROVEEDOR"
+        SET
+            tipo_documento=$1,
+            nro_documento=$2,
+            nombre=$3,
+            apellido_paterno=$4,
+            apellido_materno=$5,
+            razon_social=$6,
+            departamento=$7,
+            provincia=$8,
+            ciudad=$9,
+            direccion=$10,
+            ubigeo=$11,
+            correo=$12,
+            telefono=$13,
+            pagina_web=$14,
+            ciiu=$15,
+            calificacion=$16,
+            representante_legal=$17,
+            status=$18,
+            last_update=CURRENT_DATE,
+            update_by=$19
+        WHERE proveedor_id::varchar=$20::varchar
+    `;
+
+    await pool.query(sql, [
+        proveedor.tipo_documento,
+        proveedor.nro_documento,
+        proveedor.nombre,
+        proveedor.apellido_paterno,
+        proveedor.apellido_materno,
+        proveedor.razon_social,
+        proveedor.departamento,
+        proveedor.provincia,
+        proveedor.ciudad,
+        proveedor.direccion,
+        proveedor.ubigeo,
+        proveedor.correo,
+        proveedor.telefono,
+        proveedor.pagina_web,
+        proveedor.ciiu,
+        proveedor.calificacion,
+        proveedor.representante_legal,
+        proveedor.status,
+        proveedor.update_by,
+        proveedorId
+    ]);
+};
+
+const obtenerPorUsuario = async (proveedorId) => {
+    const sql = `
+        SELECT *
+        FROM "SISGES"."MAE_PROVEEDOR"
+        WHERE proveedor_id::varchar = $1::varchar
+    `;
+
+    const result = await pool.query(sql, [proveedorId]);
+    return result.rows[0];
+};
+
+const buscarProveedor = async (tipo, valor) => {
+    let sql = '';
+
+    if(tipo === 'DOCUMENTO'){
+        sql = `
+            SELECT
+                p.*,
+                c.descripcion AS descripcion_ciiu
+            FROM "SISGES"."MAE_PROVEEDOR" p
+            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" c
+                ON c.cod_grupo = '0002'
+               AND c.tipo_grupo = 'CODIGO_CIIU_SUNAT'
+               AND c.codigo_valor::varchar = p.ciiu::varchar
+            WHERE p.nro_documento::varchar = $1::varchar
+        `;
+    }
+    else {
+        sql = `
+            SELECT
+                p.*,
+                c.descripcion AS descripcion_ciiu
+            FROM "SISGES"."MAE_PROVEEDOR" p
+            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" c
+                ON c.cod_grupo = '0002'
+               AND c.tipo_grupo = 'CODIGO_CIIU_SUNAT'
+               AND c.codigo_valor::varchar = p.ciiu::varchar
+            WHERE
+(
+    COALESCE(p.razon_social,'')
+    || ' ' ||
+    COALESCE(p.nombre,'')
+    || ' ' ||
+    COALESCE(p.apellido_paterno,'')
+    || ' ' ||
+    COALESCE(p.apellido_materno,'')
+)
+ILIKE '%' || $1 || '%'
+ORDER BY
+    p.razon_social,
+    p.nombre,
+    p.apellido_paterno            
+        `;
+    }
+
+   const result = await pool.query(sql, [valor]);
+
+    if(tipo === 'DOCUMENTO'){
+        return result.rows[0];
+    }
+    return result.rows;
+};
+
+module.exports = {
+    listar,
+    obtenerPorId,
+    existeProveedor,
+    crear,
+    actualizar,
+    obtenerPorUsuario,
+	buscarProveedor
+};
