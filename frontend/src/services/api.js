@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'sisgestion.vercel.app' 
+    baseURL: 'https://sisgestion-backend.onrender.com' 
 });
 
 api.interceptors.request.use(
