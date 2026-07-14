@@ -1,27 +1,17 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://sisgestion-backend.onrender.com' 
+  baseURL: 'https://sisgestion-backend.onrender.com/api'
 });
 
-api.interceptors.request.use(
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
 
-    (config) => {
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-        const token =
-            localStorage.getItem('token');
-
-        if (token) {
-
-            config.headers.Authorization =
-                `Bearer ${token}`;
-
-        }
-
-        return config;
-
-    }
-
-);
+  return config;
+});
 
 export default api;
