@@ -334,6 +334,10 @@ export default function ProvidersPage() {
             const res = await crearProveedor({
                 ...form,
                 razon_social: razonSocialFinal,
+                // Se envía también como actividad_economica porque la vista de consulta
+                // lee ese nombre de campo (el backend/DB lo espera así); "ciiu" se conserva
+                // por compatibilidad con lo que ya usa el formulario.
+                actividad_economica: form.ciiu,
                 // El representante legal solo aplica a empresas (RUC)
                 representante_legal: esEmpresa ? form.representante_legal : '',
                 create_by: usuarioLogueado.usuario_id,
@@ -378,7 +382,9 @@ export default function ProvidersPage() {
     const usuarioLogueadoFresco = usuarioRawFresco ? JSON.parse(usuarioRawFresco) : null;
     const bloqueadoPorAdminEnSesion = usuarioLogueadoFresco?.primer_ingreso === 'L';
 
-    const rawRegistro = proveedores[0]?.cod_estado_registro || proveedores[0]?.COD_ESTADO_REGISTRO || 'B';
+    // Por seguridad, si el backend no devuelve el estado de registro, se asume BLOQUEADO
+    // (antes el default 'B' dejaba la ficha editable incluso sin dato real desde el backend)
+    const rawRegistro = proveedores[0]?.cod_estado_registro || proveedores[0]?.COD_ESTADO_REGISTRO || '';
     const rawEdicion = proveedores[0]?.cod_estado_edicion || proveedores[0]?.COD_ESTADO_EDICION || 'L';
 
     const estadoRegistro = String(rawRegistro).trim().toUpperCase();
