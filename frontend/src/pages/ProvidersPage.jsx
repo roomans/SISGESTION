@@ -334,10 +334,6 @@ export default function ProvidersPage() {
             const res = await crearProveedor({
                 ...form,
                 razon_social: razonSocialFinal,
-                // Se envía también como actividad_economica porque la vista de consulta
-                // lee ese nombre de campo (el backend/DB lo espera así); "ciiu" se conserva
-                // por compatibilidad con lo que ya usa el formulario.
-                actividad_economica: form.ciiu,
                 // El representante legal solo aplica a empresas (RUC)
                 representante_legal: esEmpresa ? form.representante_legal : '',
                 create_by: usuarioLogueado.usuario_id,
@@ -380,20 +376,13 @@ export default function ProvidersPage() {
 
     const usuarioRawFresco = localStorage.getItem('usuario');
     const usuarioLogueadoFresco = usuarioRawFresco ? JSON.parse(usuarioRawFresco) : null;
-    const bloqueadoPorAdminEnSesion = usuarioLogueadoFresco?.primer_ingreso === 'L';
 
-    // Por seguridad, si el backend no devuelve el estado de registro, se asume BLOQUEADO
-    // (antes el default 'B' dejaba la ficha editable incluso sin dato real desde el backend)
-    const rawRegistro = proveedores[0]?.cod_estado_registro || proveedores[0]?.COD_ESTADO_REGISTRO || '';
-    const rawEdicion = proveedores[0]?.cod_estado_edicion || proveedores[0]?.COD_ESTADO_EDICION || 'L';
-
-    const estadoRegistro = String(rawRegistro).trim().toUpperCase();
-    const estadoEdicion = String(rawEdicion).trim().toUpperCase();
-
-    const puedeEditarFichaCompleta = !esConsultor && (!esProveedor || (
-        !bloqueadoPorAdminEnSesion && 
-        (estadoRegistro === 'B' || estadoRegistro === 'O' || estadoEdicion === 'H')
-    ));
+    // El backend solo maneja "primer_ingreso" en SEG_USUARIO: se pone en 'N' automáticamente
+    // al autoregistrarse (ver proveedores.repository.js -> crear). No existen columnas
+    // cod_estado_registro / cod_estado_edicion en MAE_PROVEEDOR. Una vez registrada la ficha
+    // ('N') queda bloqueada para el propio proveedor hasta que un administrador la habilite
+    // explícitamente (primer_ingreso = 'H').
+    const puedeEditarFichaCompleta = !esConsultor && (!esProveedor || usuarioLogueadoFresco?.primer_ingreso === 'H');
 
     const editarProveedor = async (proveedorId) => {
         if (esConsultor) {
@@ -412,33 +401,6 @@ export default function ProvidersPage() {
     };
 
     const esEmpresa = form.tipo_documento === '06';
-
-    // Traduce el código de tipo de documento a su descripción legible
-    const TIPO_DOCUMENTO_LABELS = { '01': 'DNI', '04': 'Carnet de Extranjería', '06': 'RUC' };
-    const getTipoDocumentoLabel = (codigo) => {
-        if (!codigo) return '';
-        return TIPO_DOCUMENTO_LABELS[String(codigo).trim()] || codigo;
-    };
-
-    // Traduce el código CIIU a su descripción usando el catálogo cargado.
-    // Si el valor recibido ya viene como descripción (no matchea ningún código), se muestra tal cual.
-    const getCiiuLabel = (valor) => {
-        if (!valor) return '';
-        const match = ciius.find(c => {
-            const obj = Object.keys(c).reduce((acc, key) => {
-                acc[key.toLowerCase()] = c[key];
-                return acc;
-            }, {});
-            const code = obj.codigo_valor || obj.ciiu || obj.id_ciiu || obj.nro_ciiu || obj.code || obj.codigo || obj.id_catalogo;
-            return code !== undefined && String(code) === String(valor);
-        });
-        if (!match) return valor;
-        const obj = Object.keys(match).reduce((acc, key) => {
-            acc[key.toLowerCase()] = match[key];
-            return acc;
-        }, {});
-        return obj.label || obj.descripcion || obj.nombre || obj.actividad || obj.descripcion_ciiu || valor;
-    };
 
     return (
         <MainLayout>
@@ -524,8 +486,8 @@ export default function ProvidersPage() {
 
                         {esEmpresa && (
                             <div style={{ marginBottom: '15px' }}>
-                                <label style={styles.labelForm}>Representante Legal</label>
-                                <input type="text" style={styles.inputForm} value={form.representante_legal} onChange={e => setForm({...form, representante_legal: e.target.value})} />
+                                <label style={styles.labelForm}>Representante Legal *</label>
+                                <input required type="text" style={styles.inputForm} value={form.representante_legal} onChange={e => setForm({...form, representante_legal: e.target.value})} />
                             </div>
                         )}
 
@@ -624,7 +586,7 @@ export default function ProvidersPage() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>TIPO DOCUMENTO</label>
-                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{getTipoDocumentoLabel(proveedores[0]?.tipo_documento)}</div>
+                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.descripcion_tipo_documento || proveedores[0]?.tipo_documento}</div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>NÚMERO DE DOCUMENTO</label>
@@ -643,7 +605,7 @@ export default function ProvidersPage() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '20px', marginTop: '15px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>ACTIVIDAD ECONÓMICA (CIIU)</label>
-                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{getCiiuLabel(proveedores[0]?.actividad_economica) || 'No especificada'}</div>
+                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.descripcion_ciiu || 'No especificada'}</div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>DEPARTAMENTO</label>
@@ -725,10 +687,10 @@ export default function ProvidersPage() {
 
                                     return (
                                         <tr key={item.proveedor_id}>
-                                            <td style={styles.td}>{getTipoDocumentoLabel(item.tipo_documento)}</td>
+                                            <td style={styles.td}>{item.tipo_documento}</td>
                                             <td style={styles.td}>{item.nro_documento}</td>
                                             <td style={styles.td}>{item.proveedor}</td>
-                                            <td style={styles.td}>{getCiiuLabel(item.actividad_economica)}</td>
+                                            <td style={styles.td}>{item.actividad_economica}</td>
                                             <td style={styles.td}>
                                                 <span style={styles.badge(!tieneVencidos)}>
                                                     {tieneVencidos ? 'VENCIDOS' : 'VIGENTES'}

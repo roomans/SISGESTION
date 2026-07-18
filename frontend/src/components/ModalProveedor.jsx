@@ -109,6 +109,23 @@ export default function ModalProveedor({
     }
 
     const guardar = async () => {
+        if (!form.nro_documento) {
+            alert('El número de documento es obligatorio');
+            return;
+        }
+
+        if (esEmpresa) {
+            if (!form.razon_social || !form.representante_legal) {
+                alert('Razón Social y Representante Legal son obligatorios para RUC');
+                return;
+            }
+        } else {
+            if (!form.nombre || !form.apellido_paterno) {
+                alert('Nombre y Apellido Paterno son obligatorios');
+                return;
+            }
+        }
+
         try {
             const usuario = JSON.parse(localStorage.getItem('usuario'));
 
@@ -117,7 +134,7 @@ export default function ModalProveedor({
                     proveedorEditar.proveedor_id,
                     {
                         ...form,
-                        create_by: usuario.usuario_id
+                        update_by: usuario.usuario_id
                     }
                 );
             } else {
@@ -143,7 +160,9 @@ export default function ModalProveedor({
                 departamento: '',
                 provincia: '',
                 ciudad: '',
+                ubigeo: '',
                 direccion: '',
+                ciiu: '',
                 calificacion: 'R',
                 status: 'A'
             });
@@ -193,7 +212,7 @@ export default function ModalProveedor({
                         <input
                             style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '6px', marginBottom: '15px' }}
                             value={form.representante_legal}
-                            onChange={(e) => setForm({ ...form, representative_legal: e.target.value })}
+                            onChange={(e) => setForm({ ...form, representante_legal: e.target.value })}
                         />
                     </>
                 ) : (

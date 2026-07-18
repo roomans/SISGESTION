@@ -50,17 +50,18 @@ export default function ModalVerProveedor({
                             <td>{proveedor.proveedor_id}</td>
                         </tr>
 
-<td><b>Tipo Documento</b></td>                        
-						<td>
-        {
-            proveedor.tipo_documento
-            ?
-            `${proveedor.tipo_documento} - ${proveedor.descripcion_tipo_documento || ''}`
-            :
-            ''
-        }
-    </td>
-						
+                        <tr>
+                            <td><b>Tipo Documento</b></td>
+                            <td>
+                                {
+                                    proveedor.tipo_documento
+                                    ?
+                                    `${proveedor.tipo_documento} - ${proveedor.descripcion_tipo_documento || ''}`
+                                    :
+                                    ''
+                                }
+                            </td>
+                        </tr>
 
                         <tr>
                             <td><b>Nro Documento</b></td>
