@@ -336,7 +336,7 @@ export default function ModalProveedor({
                     <button className="btn-primary" onClick={guardar}>
                         {proveedorEditar ? 'Actualizar' : 'Guardar'}
                     </button>
-                    <button onClick={onClose}>Cancelar</button>
+                    <button className="btn-secondary" onClick={onClose}>Cancelar</button>
                 </div>
             </div>
         </div>
