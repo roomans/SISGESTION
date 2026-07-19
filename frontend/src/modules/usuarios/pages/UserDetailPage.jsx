@@ -1,3 +1,3 @@
 export default function UserDetailPage() {
-  return <div>Detalle de Usuario en Construcción</div>;
+    return <div>Detalle de Usuario en Construcción</div>;
 }
