@@ -602,6 +602,31 @@ export default function ProvidersPage() {
                             </div>
                         </div>
 
+                        {/* Identidad: RUC → Razón Social | DNI/CE → Nombres */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '20px', marginTop: '5px', marginBottom: '5px' }}>
+                            {(proveedores[0]?.tipo_documento === '06') ? (
+                                <div style={{ gridColumn: '1 / -1' }}>
+                                    <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>RAZÓN SOCIAL</label>
+                                    <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.razon_social || 'No registrada'}</div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>NOMBRE</label>
+                                        <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.nombre || 'No registrado'}</div>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>APELLIDO PATERNO</label>
+                                        <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.apellido_paterno || 'No registrado'}</div>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>APELLIDO MATERNO</label>
+                                        <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.apellido_materno || 'No registrado'}</div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', borderTop: `1px solid ${colors.border}`, paddingTop: '20px', marginTop: '15px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>ACTIVIDAD ECONÓMICA (CIIU)</label>
