@@ -284,6 +284,7 @@ export default function ProvidersPage() {
     const [ciudades, setCiudades] = useState([]);
     const [ciius, setCiius] = useState([]);
     const [regimenesTributarios, setRegimenesTributarios] = useState([]);
+    const [nroTrabajadoresList, setNroTrabajadoresList] = useState([]);
     const [errors, setErrors] = useState({});
 
     const esEmpresa = form.tipo_documento === '06';
@@ -343,10 +344,11 @@ export default function ProvidersPage() {
     // ── Catálogos para autoregistro ────────────────────────────────────────────
     const cargarInicialForm = async () => {
         try {
-            const [resDeps, resCiiu, resRegTrib] = await Promise.allSettled([
+            const [resDeps, resCiiu, resRegTrib, resNroTrabajadores] = await Promise.allSettled([
                 obtenerDepartamentos(),
                 obtenerCatalogo('0002', 'CODIGO_CIIU_SUNAT'),
-                obtenerCatalogo('0100', 'TIPO_REGIMEN')
+                obtenerCatalogo('0100', 'TIPO_REGIMEN'),
+                obtenerCatalogo('0101', 'TIPO_NRO_TRABAJADORES')
             ]);
             if (resDeps.status === 'fulfilled') {
                 const rawDeps = resDeps.value?.data || resDeps.value || [];
@@ -359,6 +361,10 @@ export default function ProvidersPage() {
             if (resRegTrib.status === 'fulfilled') {
                 const rawReg = resRegTrib.value?.data || resRegTrib.value || [];
                 setRegimenesTributarios(Array.isArray(rawReg) ? rawReg : []);
+            }
+            if (resNroTrabajadores.status === 'fulfilled') {
+                const rawNro = resNroTrabajadores.value?.data || resNroTrabajadores.value || [];
+                setNroTrabajadoresList(Array.isArray(rawNro) ? rawNro : []);
             }
         } catch (error) {
             console.error("Error al inicializar catálogos:", error);

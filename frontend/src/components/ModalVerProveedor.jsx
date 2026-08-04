@@ -66,6 +66,11 @@ export default function ModalVerProveedor({
                         </tr>
 
                         <tr>
+                            <td><b>Nro. Trabajadores</b></td>
+                            <td>{proveedor.descripcion_nro_trabajadores || proveedor.nro_trabajadores}</td>
+                        </tr>
+
+                        <tr>
                             <td><b>Tipo Documento</b></td>                        
                             <td>
                                 {

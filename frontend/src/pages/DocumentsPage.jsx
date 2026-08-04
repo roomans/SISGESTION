@@ -777,6 +777,7 @@ export default function DocumentsPage() {
 								modo={modoDocumento}
 								documento={documentoSeleccionado}
 								proveedorId={proveedorSeleccionado?.proveedor_id}
+								documentosExistentes={documentos}
 								regimenTributario={proveedorSeleccionado?.codigo_regimen_tributario || proveedorSeleccionado?.regimen_tributario}
 								grupoDocumento={grupoSeleccionado}
 								onClose={() => setModalDocumentoVisible(false)}

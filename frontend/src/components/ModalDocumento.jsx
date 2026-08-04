@@ -153,6 +153,7 @@ export default function ModalDocumento({visible,
 										onClose,
 										onSuccess,
 										proveedorId,
+										documentosExistentes = [],
 										regimenTributario,
 										grupoDocumento,
 										modo = 'NUEVO',
@@ -285,6 +286,30 @@ export default function ModalDocumento({visible,
 			{
 				if (!form.alcance || !form.tipo_documento_id || !form.fecha_vigencia || !form.ruta_documento) {
 					alert('Los primeros 4 campos (Alcance, Tipo Documento, Fecha Vigencia y Ruta Documento) son obligatorios.');
+					return;
+				}
+
+				// Validation 1: No duplicate document type
+				if (modo === 'NUEVO') {
+					const existeDoble = documentosExistentes.some(d => d.alcance === form.alcance && d.tipo_documento_id === form.tipo_documento_id && d.estado_documento !== 'INACTIVO');
+					if (existeDoble) {
+						alert('No se permite el doble ingreso de registro para este tipo de documento en esta gestión.');
+						return;
+					}
+				}
+
+				// Validation 2: Fecha de vigencia must be > current date
+				const vigenciaStr = form.fecha_vigencia.split('T')[0];
+				const currentDate = new Date();
+				currentDate.setHours(0, 0, 0, 0);
+				
+				// Create local date properly without timezone shifting
+				const parts = vigenciaStr.split('-');
+				const vigenciaDate = new Date(parts[0], parts[1] - 1, parts[2]);
+				vigenciaDate.setHours(0, 0, 0, 0);
+
+				if (vigenciaDate <= currentDate) {
+					alert('No se permite ingreso de documentos con Fecha de vigencia menor o igual a la fecha del sistema.');
 					return;
 				}
 
