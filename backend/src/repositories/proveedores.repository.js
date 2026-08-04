@@ -182,8 +182,8 @@ const listar = async (campo = 'ALL', valor = '') => {
 
         LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" MLV_REG
                ON MLV_REG.codigo_valor::varchar = MPRO.regimen_tributario::varchar
-              AND MLV_REG.cod_grupo='0007'
-              AND MLV_REG.tipo_grupo='TIPO_REG_TRIBUTARIO'
+              AND MLV_REG.cod_grupo='0100'
+              AND MLV_REG.tipo_grupo='TIPO_REGIMEN'
 
         LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" MLV
                ON MLV.codigo_valor = MPRO.tipo_documento
@@ -218,7 +218,7 @@ const obtenerPorId = async (proveedorId) => {
 		tipo_doc.descripcion AS descripcion_tipo_documento,
 		status_prov.descripcion AS descripcion_status_prov
 FROM 	"SISGES_PRUEBAS"."MAE_PROVEEDOR" p
-LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" reg_trib ON reg_trib.cod_grupo = '0007' AND reg_trib.tipo_grupo = 'TIPO_REG_TRIBUTARIO' AND reg_trib.codigo_valor::varchar = p.regimen_tributario::varchar
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" reg_trib ON reg_trib.cod_grupo = '0100' AND reg_trib.tipo_grupo = 'TIPO_REGIMEN' AND reg_trib.codigo_valor::varchar = p.regimen_tributario::varchar
 LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" ciiu ON ciiu.cod_grupo = '0002' AND ciiu.tipo_grupo = 'CODIGO_CIIU_SUNAT' AND ciiu.codigo_valor::varchar =  p.ciiu::varchar
 LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" tipo_doc ON tipo_doc.cod_grupo = '0001' AND tipo_doc.tipo_grupo = 'TIPO_DOC_SUNAT' AND tipo_doc.codigo_valor::varchar =  p.tipo_documento::varchar
 LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" status_prov ON status_prov.cod_grupo = '0000' AND status_prov.tipo_grupo = 'STATUS_PROVEEDOR' AND status_prov.codigo_valor::varchar =  p.status::varchar

@@ -203,7 +203,7 @@ const styles = {
 // ── Constantes de búsqueda (solo panel general) ────────────────────────────────
 const CAMPOS_BUSQUEDA = [
     { value: 'ALL', label: 'Todos los campos' },
-    { value: 'regimen_tributario', label: 'Régimen Tributario' },
+    { value: 'regimen_tributario', label: 'Tipo Empresa' },
     { value: 'proveedor', label: 'Razón Social' },
     { value: 'nro_documento', label: 'N° Documento' },
     { value: 'tipo_documento', label: 'Tipo Documento' },
@@ -346,7 +346,7 @@ export default function ProvidersPage() {
             const [resDeps, resCiiu, resRegTrib] = await Promise.allSettled([
                 obtenerDepartamentos(),
                 obtenerCatalogo('0002', 'CODIGO_CIIU_SUNAT'),
-                obtenerCatalogo('0007', 'TIPO_REG_TRIBUTARIO')
+                obtenerCatalogo('0100', 'TIPO_REGIMEN')
             ]);
             if (resDeps.status === 'fulfilled') {
                 const rawDeps = resDeps.value?.data || resDeps.value || [];

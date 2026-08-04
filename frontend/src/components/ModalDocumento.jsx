@@ -183,46 +183,21 @@ export default function ModalDocumento({visible,
 			]
 		};
 
-		const MAPA_TIPOS_DOCUMENTO = {
-			'GSG': [
-				{ codigo_valor: '01', descripcion: 'Accidentes de Trabajo, Enfermedades Ocupacionales e Incidentes' },
-				{ codigo_valor: '02', descripcion: 'Exámenes Médicos Ocupacionales' },
-				{ codigo_valor: '03', descripcion: 'Monitoreo de Agentes' },
-				{ codigo_valor: '04', descripcion: 'Inspecciones Internas' },
-				{ codigo_valor: '05', descripcion: 'Estadísticas' },
-				{ codigo_valor: '06', descripcion: 'Equipos de Seguridad o Emergencia' },
-				{ codigo_valor: '07', descripcion: 'Capacitación y Simulacros' },
-				{ codigo_valor: '08', descripcion: 'Auditorías' },
-				{ codigo_valor: '09', descripcion: 'Política y objetivos en materia de SST' },
-				{ codigo_valor: '10', descripcion: 'Reglamento Interno de Seguridad y Salud en el Trabajo' },
-				{ codigo_valor: '11', descripcion: 'Identificación de peligros, evaluación de riesgos y medidas de control (IPERC)' },
-				{ codigo_valor: '12', descripcion: 'Mapa de Riesgos' },
-				{ codigo_valor: '13', descripcion: 'Planificación de la Actividad Preventiva' },
-				{ codigo_valor: '14', descripcion: 'Programa Anual de Seguridad y Salud en el Trabajo' }
-			],
-			'GMA': [
-				{ codigo_valor: '01', descripcion: 'Matriz PAMA' },
-				{ codigo_valor: '02', descripcion: 'Otros (Certificaciones, declaraciones, manifiestos, informes)' }
-			],
-			'GCA': [
-				{ codigo_valor: '01', descripcion: 'Certificaciones ISO 9001' },
-				{ codigo_valor: '02', descripcion: 'Certificaciones Diversas (Homologaciones)' }
-			],
-			'GPA': [
-				{ codigo_valor: '01', descripcion: 'Plan de Contingencias' },
-				{ codigo_valor: '02', descripcion: 'Otros' }
-			],
-			'GTR': [
-				{ codigo_valor: '01', descripcion: 'Carta de Presentación' },
-				{ codigo_valor: '02', descripcion: 'Otros' }
-			]
-		};
-
 		const [form, setForm] = useState(formInicial);
+		const [tiposDocumento, setTiposDocumento] = useState([]);
 
 		// Obtenemos las listas a partir de los mapas
 		const alcances = MAPA_ALCANCES[grupoDocumento] || [];
-		const tiposDocumento = MAPA_TIPOS_DOCUMENTO[form.alcance] || [];
+
+		useEffect(() => {
+			if (form.alcance) {
+				obtenerCatalogo('0001', 'TIPO_DOC_' + form.alcance)
+					.then(res => setTiposDocumento(res.data ? res.data : res))
+					.catch(err => console.error(err));
+			} else {
+				setTiposDocumento([]);
+			}
+		}, [form.alcance]);
 
 
 		const cargarCatalogos = async () => 

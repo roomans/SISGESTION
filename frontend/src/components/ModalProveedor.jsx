@@ -310,7 +310,7 @@ const validarForm = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!form.regimen_tributario) {
-        newErrors.regimen_tributario = 'El régimen tributario es obligatorio.';
+        newErrors.regimen_tributario = 'El tipo de empresa es obligatorio.';
     }
 
     if (!form.tipo_documento) {
@@ -530,7 +530,7 @@ else{
                 {/* --- GRUPO 1: IDENTIDAD --- */}
 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
     <div>
-        <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Régimen Tributario *</label>
+        <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Tipo Empresa *</label>
         <select
             required
             style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '6px', marginBottom: errors.regimen_tributario ? '5px' : '0' }}
