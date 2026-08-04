@@ -187,6 +187,7 @@ export default function ModalDocumento({visible,
 
 		const [form, setForm] = useState(formInicial);
 		const [tiposDocumento, setTiposDocumento] = useState([]);
+		const [errorMessage, setErrorMessage] = useState('');
 
 		// Obtenemos las listas a partir de los mapas
 		const alcances = MAPA_ALCANCES[grupoDocumento] || [];
@@ -269,6 +270,7 @@ export default function ModalDocumento({visible,
 			{
 				if (!visible) {return;}
 
+				setErrorMessage('');
 				cargarCatalogos();
 				if (modo === 'NUEVO') 
 					{
@@ -284,8 +286,10 @@ export default function ModalDocumento({visible,
 
 		const guardar = async () => 
 			{
+				setErrorMessage('');
+				
 				if (!form.alcance || !form.tipo_documento_id || !form.fecha_vigencia || !form.ruta_documento) {
-					alert('Los primeros 4 campos (Alcance, Tipo Documento, Fecha Vigencia y Ruta Documento) son obligatorios.');
+					setErrorMessage('Los primeros 4 campos (Alcance, Tipo Documento, Fecha Vigencia y Ruta Documento) son obligatorios.');
 					return;
 				}
 
@@ -293,7 +297,7 @@ export default function ModalDocumento({visible,
 				if (modo === 'NUEVO') {
 					const existeDoble = documentosExistentes.some(d => d.alcance === form.alcance && d.tipo_documento_id === form.tipo_documento_id && d.estado_documento !== 'INACTIVO');
 					if (existeDoble) {
-						alert('No se permite el doble ingreso de registro para este tipo de documento en esta gestión.');
+						setErrorMessage('No se permite el doble ingreso de registro para este tipo de documento en esta gestión.');
 						return;
 					}
 				}
@@ -309,7 +313,7 @@ export default function ModalDocumento({visible,
 				vigenciaDate.setHours(0, 0, 0, 0);
 
 				if (vigenciaDate <= currentDate) {
-					alert('No se permite ingreso de documentos con Fecha de vigencia menor o igual a la fecha del sistema.');
+					setErrorMessage('No se permite ingreso de documentos con Fecha de vigencia menor o igual a la fecha del sistema.');
 					return;
 				}
 
@@ -347,7 +351,7 @@ export default function ModalDocumento({visible,
 					}
 				catch(error)
 					{
-						alert(error.response?.data?.message ||error.message);
+						setErrorMessage(error.response?.data?.message ||error.message);
 					}
 			};
 
@@ -361,6 +365,7 @@ export default function ModalDocumento({visible,
 
 			const cerrarModal = () => 
 				{
+					setErrorMessage('');
 					setForm({tipo_documento_id:'',
 							tipo_documento:'',
 							fecha_inicio:'',
@@ -562,19 +567,29 @@ export default function ModalDocumento({visible,
 
                 </div>
 
-                <div style={styles.actions}>
+                <div style={{ ...styles.actions, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+					
+					<div style={{ flex: 1, marginRight: '16px' }}>
+						{errorMessage && (
+							<span style={{ color: '#dc2626', fontSize: '13px', fontWeight: '500', lineHeight: '1.2', display: 'block' }}>
+								{errorMessage}
+							</span>
+						)}
+					</div>
+					
+					<div style={{ display: 'flex', gap: '12px' }}>
+						{
+							modo !== 'VER' && (
+								<button style={styles.btnPrimary} onClick={guardar}>
+									{modo === 'NUEVO' ? 'Guardar' : 'Actualizar'}
+								</button>
+							)
+						}
 
-                    {
-                        modo !== 'VER' && (
-                            <button style={styles.btnPrimary} onClick={guardar}>
-                                {modo === 'NUEVO' ? 'Guardar' : 'Actualizar'}
-                            </button>
-                        )
-                    }
-
-                    <button style={styles.btnGhost} onClick={cerrarModal}>
-                        {modo === 'VER' ? 'Cerrar' : 'Cancelar'}
-                    </button>
+						<button style={styles.btnGhost} onClick={cerrarModal}>
+							{modo === 'VER' ? 'Cerrar' : 'Cancelar'}
+						</button>
+					</div>
 
                 </div>
 
