@@ -153,6 +153,7 @@ export default function ModalDocumento({visible,
 										onClose,
 										onSuccess,
 										proveedorId,
+										regimenTributario,
 										grupoDocumento,
 										modo = 'NUEVO',
 										documento = null}) 
@@ -192,12 +193,32 @@ export default function ModalDocumento({visible,
 		useEffect(() => {
 			if (form.alcance) {
 				obtenerCatalogo('0001', 'TIPO_DOC_' + form.alcance)
-					.then(res => setTiposDocumento(res.data ? res.data : res))
+					.then(res => {
+						let data = res.data ? res.data : res;
+						
+						if (form.alcance === 'GSG') {
+							if (regimenTributario === 'RG') {
+								const permitidos = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+								data = data.filter(d => permitidos.includes(d.codigo_valor));
+							} else if (regimenTributario === 'RP') {
+								const permitidos = ['01','02','03','04','05','07','09','10','12','15'];
+								data = data.filter(d => permitidos.includes(d.codigo_valor));
+							} else if (regimenTributario === 'RM') {
+								const permitidos = ['01','02','04','07','09','12','13'];
+								data = data.filter(d => permitidos.includes(d.codigo_valor));
+							}
+						} else if (['GMA', 'GCA', 'GPA', 'GTR'].includes(form.alcance)) {
+							const permitidos = ['01', '02'];
+							data = data.filter(d => permitidos.includes(d.codigo_valor));
+						}
+						
+						setTiposDocumento(data);
+					})
 					.catch(err => console.error(err));
 			} else {
 				setTiposDocumento([]);
 			}
-		}, [form.alcance]);
+		}, [form.alcance, regimenTributario]);
 
 
 		const cargarCatalogos = async () => 
