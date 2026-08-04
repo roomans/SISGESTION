@@ -1,30 +1,29 @@
-const service =
-require('../services/proveedores.service');
+const service = require('../services/proveedores.service');
+const listar = async (req,res) => 
+{
+	try {
+			console.log('====================================');
+			console.log('CAMPO :', req.query.campo);
+			console.log('VALOR :', req.query.valor);
+			console.log('====================================');
+			
+			const data =
+    await service.listar(
+        req.query.campo || 'ALL',
+        req.query.valor || ''
+    );
 
-const listar = async (
-    req,
-    res
-) => {
+console.log("REGISTROS :", data.length);
 
-    try {
-
-        const data =
-            await service.listar();
-
-        return res.status(200).json({
-            success:true,
-            data
-        });
-
-    } catch(error) {
-
-        return res.status(500).json({
-            success:false,
-            message:error.message
-        });
-
-    }
-
+return res.status(200).json({
+    success:true,
+    data
+});
+		}
+	catch(error)
+		{
+			return res.status(500).json({success:false,message:error.message});
+		}
 };
 
 const obtenerPorId = async (

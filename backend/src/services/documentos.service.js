@@ -1,126 +1,173 @@
-const repository =
-require('../repositories/documentos.repository');
+const repository = require('../repositories/documentos.repository');
+const {calcularEstadoDocumento} = require('../utils/documento.utils');
 
-const {
-    calcularEstadoDocumento
-} = require('../utils/documento.utils');
+const listarPorProveedor = async (proveedorId) =>
+	{
+		return await repository.listarPorProveedor(proveedorId);
+	};
 
-const listarPorProveedor =
-async (proveedorId) => {
+const obtenerPorId = async (documentoId) =>
+	{
+		return await repository.obtenerPorId(documentoId);
+	};
 
-    return await repository
-        .listarPorProveedor(
-            proveedorId
-        );
-};
+const crear = async (documento) => 
+	{
+		if (!documento.grupo_documentos)
+			{
+				throw new Error('Grupo Documento es obligatorio');
+			}
 
-const obtenerPorId =
-async (documentoId) => {
+		if (!documento.fecha_vigencia) 
+			{
+				throw new Error('Fecha Vigencia es obligatoria');
+			}
 
-    return await repository
-        .obtenerPorId(
-            documentoId
-        );
-};
+		switch(documento.grupo_documentos)
+			{        
+				case 'DOC_NOR':
+					if (documento.alcance != 'GSG' && documento.alcance != 'GMA')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestión SST y/o Gestión Ambiental" para el campo ALCANCE');
+						}
+				
+				
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}
+					break;
+					
+				case 'DOC_EXT_NOR':
+					if (documento.alcance === 'GSG' || documento.alcance === 'GMA' || documento.alcance === 'GPA' || documento.alcance === 'GTR')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestion de Calidad" para el campo ALCANCE');
+						}
+						
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}						
+					break;
+				
+				
+				case 'DOC_REQ_ESTATAL':
+					if (documento.alcance === 'GSG' || documento.alcance === 'GMA' || documento.alcance === 'GCA' || documento.alcance === 'GTR')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestión Patrimonial" para el campo ALCANCE');
+						}
+						
+					
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}
+					break;
+				
+				
+				
+				case 'DOC_OTROS':
+				
+					if (documento.alcance === 'GSG' || documento.alcance === 'GMA' || documento.alcance === 'GCA' || documento.alcance === 'GPA')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestión de Transporte " para el campo ALCANCE');
+						}
+						
+					
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}
+					break;
+			}
 
-const crear =
-async (documento) => {
+		documento.estado_documento = calcularEstadoDocumento(documento.fecha_vigencia);
+		return await repository.crear(documento);
+	};
 
-    if (!documento.grupo_documentos) {
+const actualizar = async (documentoId,documento) => 
+	{
+		if (!documento.alcance)
+			{
+				throw new Error('El Alcance es obligatorio');
+			}
+			
+			
+		if (!documento.fecha_vigencia) 
+			{
+				throw new Error('Fecha Vigencia es obligatoria');
+			}
 
-        throw new Error(
-            'Grupo Documento es obligatorio'
-        );
-    }
+		switch(documento.grupo_documentos)
+			{        
+				case 'DOC_NOR':
+					if (documento.alcance != 'GSG' && documento.alcance != 'GMA')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestión SST y/o Gestión Ambiental" para el campo ALCANCE');
+						}
+				
+				
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}
+					break;
+					
+				case 'DOC_EXT_NOR':
+					if (documento.alcance === 'GSG' || documento.alcance === 'GMA' || documento.alcance === 'GPA' || documento.alcance === 'GTR')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestion de Calidad" para el campo ALCANCE');
+						}
+						
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}						
+					break;
+				
+				
+				case 'DOC_REQ_ESTATAL':
+					if (documento.alcance === 'GSG' || documento.alcance === 'GMA' || documento.alcance === 'GCA' || documento.alcance === 'GTR')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestión Patrimonial" para el campo ALCANCE');
+						}
+						
+					
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}
+					break;
+				
+				
+				
+				case 'DOC_OTROS':
+				
+					if (documento.alcance === 'GSG' || documento.alcance === 'GMA' || documento.alcance === 'GCA' || documento.alcance === 'GPA')
+						{
+							throw new Error('Alcance NO permitido en este Grupo de Documentos. Solo puede seleccionar "Gestión de Transporte " para el campo ALCANCE');
+						}
+						
+					
+					if(documento.tipo_documento_id === null )
+						{
+							throw new Error('Tipo Documento es obligatorio');
+						}
+					break;
+			}	
+			
+		documento.estado_documento =calcularEstadoDocumento(documento.fecha_vigencia);
+		await repository.actualizar(documentoId,documento);
 
-    if (!documento.fecha_vigencia) {
+	};
 
-        throw new Error(
-            'Fecha Vigencia es obligatoria'
-        );
-    }
+const listarPorGrupo = async (proveedorId,grupo) =>
+	{
+		return await repository.listarPorGrupo(proveedorId,grupo);
+	};
 
-    switch(documento.grupo_documentos){
-
-        case 'DOC_NOR':
-
-            if(!documento.tipo_documento_id){
-
-                throw new Error(
-                    'Tipo Documento es obligatorio para Documentos Normativos'
-                );
-
-            }
-
-            break;
-
-        case 'DOC_EXT_NOR':
-        case 'DOC_REQ_ESTATAL':
-        case 'DOC_OTROS':
-
-            if(!documento.tipo_documento){
-
-                throw new Error(
-                    'Tipo Documento es obligatorio'
-                );
-
-            }
-
-            break;
-
-    }
-
-    documento.estado_documento =
-        calcularEstadoDocumento(
-            documento.fecha_vigencia
-        );
-
-    return await repository.crear(
-        documento
-    );
-};
-
-const actualizar = async (
-    documentoId,
-    documento
-) => {
-
-    if (!documento.alcance) {
-        throw new Error(
-            'El Alcance es obligatorio'
-        );
-    }
-
-    documento.estado_documento =
-        calcularEstadoDocumento(
-            documento.fecha_vigencia
-        );
-
-    await repository.actualizar(
-        documentoId,
-        documento
-    );
-
-};
-
-const listarPorGrupo =
-async (
-    proveedorId,
-    grupo
-) => {
-
-    return await repository
-        .listarPorGrupo(
-            proveedorId,
-            grupo
-        );
-
-};
-
-module.exports = {
-    listarPorProveedor,
-    obtenerPorId,
-    crear,
-    actualizar,
-	listarPorGrupo
-};
+module.exports = {	listarPorProveedor,
+					obtenerPorId,
+					crear,
+					actualizar,
+					listarPorGrupo};

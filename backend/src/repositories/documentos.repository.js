@@ -9,7 +9,39 @@ const listarPorProveedor = async (proveedorId) => {
     d.proveedor_id,
     d.tipo_documento_id,
     d.tipo_documento,
-    lv.descripcion AS descripcion_tipo_documento,
+    CASE d.grupo_documentos
+        WHEN 'DOC_NOR' THEN
+            (	select 	lv.descripcion
+                from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+                where	lv.cod_grupo = '0001'
+                and		lv.tipo_grupo = 'TIPO_DOC_NORMATIVO'
+                and		lv.codigo_valor = d.tipo_documento_id ) 
+        WHEN 'DOC_EXT_NOR' THEN
+            (	select 	lv.descripcion
+                from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+                where	lv.cod_grupo = '0001'
+                and		lv.tipo_grupo = 'TIPO_DOC_EXT_NOR'
+                and		lv.codigo_valor = d.tipo_documento_id ) 
+        WHEN 'DOC_REQ_ESTATAL' THEN
+            (	select 	lv.descripcion
+                from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+                where	lv.cod_grupo = '0001'
+                and		lv.tipo_grupo = 'TIPO_DOC_REQ_EST'
+                and		lv.codigo_valor = d.tipo_documento_id ) 
+        WHEN 'DOC_OTROS' THEN
+            COALESCE(
+                (	select 	lv.descripcion
+                    from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+                    where	lv.cod_grupo = '0001'
+                    and		lv.tipo_grupo = 'TIPO_DOC_OTROS'
+                    and		lv.codigo_valor = d.tipo_documento_id ),
+                CASE d.tipo_documento_id
+                    WHEN '01' THEN 'Carta de Presentación'
+                    WHEN '02' THEN 'Otros'
+                    ELSE d.tipo_documento_id
+                END
+            )
+    END AS descripcion_tipo_documento,
     d.fecha_inicio,
     d.fecha_fin,
     d.fecha_vigencia,
@@ -18,12 +50,7 @@ const listarPorProveedor = async (proveedorId) => {
     d.status,
     d.alcance,
     d.observaciones
-FROM "SISGES"."MOV_DOCUMENTOS" d
-
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" lv
-    ON lv.cod_grupo = '0001'
-   AND lv.tipo_grupo = 'TIPO_DOC_NORMATIVO'
-   AND lv.codigo_valor = d.tipo_documento_id
+FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
 
 WHERE d.proveedor_id = $1
 AND d.status = 'A'
@@ -41,7 +68,7 @@ const obtenerPorId = async (documentoId) => {
 
     const sql = `
         SELECT *
-        FROM "SISGES"."MOV_DOCUMENTOS"
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
         WHERE documento_id = $1
     `;
 
@@ -51,18 +78,12 @@ const obtenerPorId = async (documentoId) => {
     return result.rows[0];
 };
 
-const crear = async (documento) => {
-	
-	if(documento.grupo_documentos !== 'DOC_NOR'){
-    documento.tipo_documento_id = null;
-}
-
-if(documento.grupo_documentos === 'DOC_NOR'){
-    documento.tipo_documento = null;
-}
+const crear = async (documento) => 
+	{	
+		documento.tipo_documento = null;
 
     const sql = `
-        INSERT INTO "SISGES"."MOV_DOCUMENTOS"
+        INSERT INTO "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
         (
             documento_id,
             grupo_documentos,
@@ -82,7 +103,7 @@ if(documento.grupo_documentos === 'DOC_NOR'){
         )
         VALUES
         (
-            nextval('"SISGES".seq_documento_id'),
+            nextval('"SISGES_PRUEBAS".seq_documento_id'),
             $1,$2,$3,$4,$5,$6,$7,$8,$9,
             'A',
             $10,$11,
@@ -116,16 +137,12 @@ const actualizar = async (
     documento
 ) => {
 
-    if (documento.grupo_documentos !== 'DOC_NOR') {
-        documento.tipo_documento_id = null;
-    }
-
-    if (documento.grupo_documentos === 'DOC_NOR') {
+    
         documento.tipo_documento = null;
-    }
+    
 
     const sql = `
-        UPDATE "SISGES"."MOV_DOCUMENTOS"
+        UPDATE "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
         SET
             tipo_documento_id = $1,
             tipo_documento    = $2,
@@ -169,7 +186,39 @@ const listarPorGrupo = async (
         d.proveedor_id,
         d.tipo_documento_id,
         d.tipo_documento,
-        lv.descripcion AS descripcion_tipo_documento,
+        CASE d.grupo_documentos
+			WHEN 'DOC_NOR' THEN
+				(	select 	lv.descripcion
+			  		from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+			  		where	lv.cod_grupo = '0001'
+			  		and		lv.tipo_grupo = 'TIPO_DOC_NORMATIVO'
+			  		and		lv.codigo_valor = d.tipo_documento_id ) 
+			WHEN 'DOC_EXT_NOR' THEN
+				(	select 	lv.descripcion
+			  		from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+			  		where	lv.cod_grupo = '0001'
+			  		and		lv.tipo_grupo = 'TIPO_DOC_EXT_NOR'
+			  		and		lv.codigo_valor = d.tipo_documento_id ) 
+			WHEN 'DOC_REQ_ESTATAL' THEN
+				(	select 	lv.descripcion
+			  		from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+			  		where	lv.cod_grupo = '0001'
+			  		and		lv.tipo_grupo = 'TIPO_DOC_REQ_EST'
+			  		and		lv.codigo_valor = d.tipo_documento_id ) 
+			WHEN 'DOC_OTROS' THEN
+				COALESCE(
+					(	select 	lv.descripcion
+				  		from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+				  		where	lv.cod_grupo = '0001'
+				  		and		lv.tipo_grupo = 'TIPO_DOC_OTROS'
+				  		and		lv.codigo_valor = d.tipo_documento_id ),
+					CASE d.tipo_documento_id
+						WHEN '01' THEN 'Carta de Presentación'
+						WHEN '02' THEN 'Otros'
+						ELSE d.tipo_documento_id
+					END
+				) 		
+		END as descripcion_tipo_documento,
 		lv_alcance.descripcion AS descripcion_alcance,
 		lv_estado_doc.descripcion as desc_estado_documento,
         d.fecha_inicio,
@@ -180,10 +229,9 @@ const listarPorGrupo = async (
         d.status,
         d.alcance,
         d.observaciones
-FROM	"SISGES"."MOV_DOCUMENTOS" d
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" lv ON lv.cod_grupo = '0001' AND lv.tipo_grupo = 'TIPO_DOC_NORMATIVO' AND lv.codigo_valor = d.tipo_documento_id		   
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" lv_alcance ON lv_alcance.codigo_valor = D.alcance AND lv_alcance.cod_grupo='0099' AND lv_alcance.tipo_grupo='TIPO_GESTION'
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" lv_estado_doc ON lv_estado_doc.codigo_valor = D.estado_documento AND lv_estado_doc.cod_grupo='0000' AND lv_estado_doc.tipo_grupo='STATUS_DOCUMENTO'
+FROM	"SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv_alcance ON lv_alcance.codigo_valor = D.alcance AND lv_alcance.cod_grupo='0099' AND lv_alcance.tipo_grupo='TIPO_GESTION'
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv_estado_doc ON lv_estado_doc.codigo_valor = D.estado_documento AND lv_estado_doc.cod_grupo='0000' AND lv_estado_doc.tipo_grupo='STATUS_DOCUMENTO'
 WHERE 	d.proveedor_id = $1
 AND 	d.grupo_documentos = $2
 AND		d.status = 'A'

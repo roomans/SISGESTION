@@ -1,20 +1,6 @@
-import {
-    useState,
-    useEffect
-}
-from 'react';
-
-import {
-
-    crearDocumento,
-    actualizarDocumento
-
-} from '../services/documentos.service';
-
-import {
-    obtenerCatalogo
-}
-from '../services/catalogos.service';
+import {useState,useEffect} from 'react';
+import {crearDocumento,actualizarDocumento} from '../services/documentos.service';
+import {obtenerCatalogo} from '../services/catalogos.service';
 
 // Misma paleta usada en el resto del sistema (Documentos, Dashboard, Proveedores)
 const colors = {
@@ -163,272 +149,295 @@ const responsiveCSS = `
     }
 `;
 
-export default function ModalDocumento({
-
-    visible,
-    onClose,
-    onSuccess,
-
-    proveedorId,
-    grupoDocumento,
-
-    modo = 'NUEVO',
-
-    documento = null
-
-}) {
-
-	const formInicial = {
-
-    tipo_documento_id: '',
-    tipo_documento: '',
-    fecha_inicio: '',
-    fecha_fin: '',
-    fecha_vigencia: '',
-    alcance: '',
-    ruta_documento: '',
-    observaciones: ''
-
-};
-
-const [form, setForm] = useState(formInicial);
-
-
-
-const [
-    tiposDocumento,
-    setTiposDocumento
-] = useState([]);
-
-const [alcances, setAlcances] = useState([]);
-
-const cargarCatalogos = async () => {
-
-    try {
-
-        if (grupoDocumento === 'DOC_NOR') {
-
-            const tipos = await obtenerCatalogo(
-                '0001',
-                'TIPO_DOC_NORMATIVO'
-            );
-
-            setTiposDocumento(tipos);
-
-        }
-        else {
-
-            setTiposDocumento([]);
-
-        }
-
-        const alc = await obtenerCatalogo(
-            '0099',
-            'TIPO_GESTION'
-        );
-
-        setAlcances(alc);
-
-    }
-    catch (error) {
-
-        console.error(error);
-
-    }
-
-};
-
-const cargarFormulario = () => {
-
-    if (!documento) {
-
-        setForm(formInicial);
-
-        return;
-
-    }
-
-    setForm({
-
-        tipo_documento_id: documento.tipo_documento_id || '',
-        tipo_documento: documento.tipo_documento || '',
-        fecha_inicio: formatearFecha(documento.fecha_inicio) || '',
-        fecha_fin: formatearFecha(documento.fecha_fin) || '',
-        fecha_vigencia: formatearFecha(documento.fecha_vigencia) || '',
-        alcance: documento.alcance || '',
-        ruta_documento: documento.ruta_documento || '',
-        observaciones: documento.observaciones || ''
-
-    });
-
-};
-
-const formatearFecha = (fecha) => {
-
-    if (!fecha) return '';
-
-    return new Date(fecha)
-        .toISOString()
-        .split('T')[0];
-
-};
-
-// Para mostrar en pantalla (modo Consultar), no para inputs de tipo date
-const formatearFechaDisplay = (fecha) => {
-
-    const iso = formatearFecha(fecha);
-
-    if (!iso) return '';
-
-    const [anio, mes, dia] = iso.split('-');
-
-    return `${dia}/${mes}/${anio}`;
-
-};
-
-useEffect(() => {
-
-    if (!visible) {
-
-        return;
-
-    }
-
-    cargarCatalogos();
-
-    if (modo === 'NUEVO') {
-
-        setForm(formInicial);
-
-    }
-    else {
-
-        cargarFormulario();
-
-    }
-
-}, [
-
-    visible,
-    grupoDocumento,
-    modo,
-    documento
-
-]);
-
-if(!visible){
-    return null;
-}
-
-    const guardar =
-    async () => {
-
-        try {
-
-            const usuario =
-                JSON.parse(
-                    localStorage.getItem(
-                        'usuario'
-                    )
-                );
-
-const datosDocumento = {
-    ...form,
-    proveedor_id: proveedorId,
-    grupo_documentos: grupoDocumento,
-
-	fecha_inicio: form.fecha_inicio || null,
-    fecha_fin: form.fecha_fin || null,
-    update_by: usuario.usuario_id
-};
-
-if (grupoDocumento === 'DOC_NOR') {
-    datosDocumento.tipo_documento = '';
-} else {
-    datosDocumento.tipo_documento_id = '';
-}
-if (modo === 'NUEVO') {
-
-    await crearDocumento(datosDocumento);
-
-}
-else {
-
-    await actualizarDocumento(
-    documento.documento_id,
-    datosDocumento
-);
-
-}
-
-            alert(
-                'Documento registrado correctamente'
-            );
-
-            onSuccess();
-
-            cerrarModal();
-
-        }
-        catch(error){
-
-            alert(
-                error.response?.data?.message ||
-                error.message
-            );
-
-        }
-
-    };
-
-const GRUPOS_DOCUMENTOS = {
-
-    DOC_NOR:
-        'DOCUMENTOS NORMATIVOS',
-
-    DOC_EXT_NOR:
-        'DOCUMENTOS EXTRA NORMATIVOS',
-
-    DOC_REQ_ESTATAL:
-        'DOCUMENTOS REQUERIMIENTO ESTATAL',
-
-    DOC_OTROS:
-        'DOCUMENTOS OTROS'
-
-};
-
-const cerrarModal = () => {
-
-    setForm({
-
-        tipo_documento_id:'',
-        tipo_documento:'',
-        fecha_inicio:'',
-        fecha_fin:'',
-        fecha_vigencia:'',
-        ruta_documento:'',
-        observaciones:'',
-        alcance:''
-
-    });
-
-    onClose();
-
-};
-
-const soloLectura = modo === 'VER';
-
-const TITULOS = {
-
-    NUEVO:'Nuevo Documento',
-
-    EDITAR:'Editar Documento',
-
-    VER:'Consultar Documento'
-
-};
-
-if (modo === 'VER') {
+export default function ModalDocumento({visible,
+										onClose,
+										onSuccess,
+										proveedorId,
+										grupoDocumento,
+										modo = 'NUEVO',
+										documento = null}) 
+	{
+
+		const formInicial = {tipo_documento_id: '',
+							tipo_documento: '',
+							fecha_inicio: '',
+							fecha_fin: '',
+							fecha_vigencia: '',
+							alcance: '',
+							ruta_documento: '',
+							observaciones: ''};
+
+		const MAPA_ALCANCES = {
+			'DOC_NOR': [
+				{ codigo_valor: 'GSG', descripcion: 'GESTIÓN SST' },
+				{ codigo_valor: 'GMA', descripcion: 'GESTIÓN MA' }
+			],
+			'DOC_EXT_NOR': [
+				{ codigo_valor: 'GCA', descripcion: 'GESTIÓN DE CALIDAD' }
+			],
+			'DOC_REQ_ESTATAL': [
+				{ codigo_valor: 'GPA', descripcion: 'GESTIÓN PATRIMONIAL' }
+			],
+			'DOC_OTROS': [
+				{ codigo_valor: 'GTR', descripcion: 'GESTIÓN TRANSPORTE' }
+			]
+		};
+
+		const MAPA_TIPOS_DOCUMENTO = {
+			'GSG': [
+				{ codigo_valor: '01', descripcion: 'Accidentes de Trabajo, Enfermedades Ocupacionales e Incidentes' },
+				{ codigo_valor: '02', descripcion: 'Exámenes Médicos Ocupacionales' },
+				{ codigo_valor: '03', descripcion: 'Monitoreo de Agentes' },
+				{ codigo_valor: '04', descripcion: 'Inspecciones Internas' },
+				{ codigo_valor: '05', descripcion: 'Estadísticas' },
+				{ codigo_valor: '06', descripcion: 'Equipos de Seguridad o Emergencia' },
+				{ codigo_valor: '07', descripcion: 'Capacitación y Simulacros' },
+				{ codigo_valor: '08', descripcion: 'Auditorías' },
+				{ codigo_valor: '09', descripcion: 'Política y objetivos en materia de SST' },
+				{ codigo_valor: '10', descripcion: 'Reglamento Interno de Seguridad y Salud en el Trabajo' },
+				{ codigo_valor: '11', descripcion: 'Identificación de peligros, evaluación de riesgos y medidas de control (IPERC)' },
+				{ codigo_valor: '12', descripcion: 'Mapa de Riesgos' },
+				{ codigo_valor: '13', descripcion: 'Planificación de la Actividad Preventiva' },
+				{ codigo_valor: '14', descripcion: 'Programa Anual de Seguridad y Salud en el Trabajo' }
+			],
+			'GMA': [
+				{ codigo_valor: '01', descripcion: 'Matriz PAMA' },
+				{ codigo_valor: '02', descripcion: 'Otros (Certificaciones, declaraciones, manifiestos, informes)' }
+			],
+			'GCA': [
+				{ codigo_valor: '01', descripcion: 'Certificaciones ISO 9001' },
+				{ codigo_valor: '02', descripcion: 'Certificaciones Diversas (Homologaciones)' }
+			],
+			'GPA': [
+				{ codigo_valor: '01', descripcion: 'Plan de Contingencias' },
+				{ codigo_valor: '02', descripcion: 'Otros' }
+			],
+			'GTR': [
+				{ codigo_valor: '01', descripcion: 'Carta de Presentación' },
+				{ codigo_valor: '02', descripcion: 'Otros' }
+			]
+		};
+
+		const [form, setForm] = useState(formInicial);
+
+		// Obtenemos las listas a partir de los mapas
+		const alcances = MAPA_ALCANCES[grupoDocumento] || [];
+		const tiposDocumento = MAPA_TIPOS_DOCUMENTO[form.alcance] || [];
+
+
+		const cargarCatalogos = async () => 
+			{
+				// Ya no se requiere cargar de BD porque se usan las listas hardcodeadas
+			};
+
+		const cargarFormulario = () => 
+			{
+				if (!documento) 
+					{
+						setForm(formInicial);
+						return;
+					}
+
+				setForm({tipo_documento_id: documento.tipo_documento_id || '',
+					tipo_documento: documento.tipo_documento || '',
+					fecha_inicio: formatearFecha(documento.fecha_inicio) || '',
+					fecha_fin: formatearFecha(documento.fecha_fin) || '',
+					fecha_vigencia: formatearFecha(documento.fecha_vigencia) || '',
+					alcance: documento.alcance || '',
+					ruta_documento: documento.ruta_documento || '',
+					observaciones: documento.observaciones || ''
+				});
+			};
+
+		const formatearFecha = (fecha) => 
+			{
+				if (!fecha) return '';
+				if (typeof fecha === 'string') {
+					return fecha.split('T')[0];
+				}
+				return new Date(fecha).toISOString().split('T')[0];
+			};
+
+		// Para mostrar en pantalla (modo Consultar), no para inputs de tipo date
+		const formatearFechaDisplay = (fecha) => 
+			{
+				const iso = formatearFecha(fecha);
+				if (!iso) return '';
+
+				const [anio, mes, dia] = iso.split('-');
+				return `${dia}/${mes}/${anio}`;
+			};
+
+		useEffect(() => 
+			{
+				if (!visible) {return;}
+
+				cargarCatalogos();
+				if (modo === 'NUEVO') 
+					{
+						setForm(formInicial);
+					}
+				else 
+					{
+						cargarFormulario();
+					}
+			}, [visible,grupoDocumento,modo,documento]);
+
+		if(!visible){return null;}
+
+		const guardar = async () => 
+			{
+				if (!form.alcance || !form.tipo_documento_id || !form.fecha_vigencia || !form.ruta_documento) {
+					alert('Los primeros 4 campos (Alcance, Tipo Documento, Fecha Vigencia y Ruta Documento) son obligatorios.');
+					return;
+				}
+
+				try 
+					{
+						const usuario =JSON.parse(localStorage.getItem('usuario'));
+
+						const datosDocumento = {...form,
+												proveedor_id: proveedorId,
+												grupo_documentos: grupoDocumento,
+												fecha_inicio: form.fecha_inicio || null,
+												fecha_fin: form.fecha_fin || null,
+												create_by: usuario.usuario_id,
+												update_by: usuario.usuario_id
+												};
+
+						// Guardar descripción del tipo de documento seleccionado
+						const tipoSeleccionado = tiposDocumento.find(t => t.codigo_valor === form.tipo_documento_id);
+						if (tipoSeleccionado) {
+							datosDocumento.descripcion_tipo_documento = tipoSeleccionado.descripcion;
+						}
+
+						if (modo === 'NUEVO') 
+							{
+								await crearDocumento(datosDocumento);
+							}
+						else 
+							{
+								await actualizarDocumento(documento.documento_id,datosDocumento);
+							}
+
+						alert('Documento registrado correctamente');
+						onSuccess();
+						cerrarModal();
+					}
+				catch(error)
+					{
+						alert(error.response?.data?.message ||error.message);
+					}
+			};
+
+			const GRUPOS_DOCUMENTOS = 
+				{    
+					DOC_NOR:'GESTION SST - MTA',
+					DOC_EXT_NOR:'GESTION DE CALIDAD',
+					DOC_REQ_ESTATAL:'GESTION SEG. PATRIMONIAL',
+					DOC_OTROS:'GESTION TRANSPORTE'
+				};
+
+			const cerrarModal = () => 
+				{
+					setForm({tipo_documento_id:'',
+							tipo_documento:'',
+							fecha_inicio:'',
+							fecha_fin:'',
+							fecha_vigencia:'',
+							ruta_documento:'',
+							observaciones:'',
+							alcance:''
+							});
+					onClose();
+				};
+
+			const soloLectura = modo === 'VER';
+
+			const TITULOS = 
+				{
+					NUEVO:'Nuevo Documento',
+					EDITAR:'Editar Documento',
+					VER:'Consultar Documento'
+				};
+
+			if (modo === 'VER') 
+				{
+					return (
+					
+								<div style={styles.overlay}>
+									<style>{responsiveCSS}</style>
+									<div style={styles.modal}>
+
+										<h2 style={styles.headerTitle}>{TITULOS[modo]}</h2>
+										<p style={styles.headerSubtitle}>{GRUPOS_DOCUMENTOS[grupoDocumento]}</p>
+										<hr style={styles.divider} />
+
+										<div className="modal-doc-grid" style={styles.grid}>
+										
+											<div style={styles.field}>
+													<label style={styles.label}>Alcance</label>
+													<div style={styles.readOnlyValue}>
+														{documento.descripcion_alcance || documento.alcance}
+													</div>
+											</div>
+
+											<div style={styles.field}>
+												<label style={styles.label}>Tipo Documento</label>
+												<div style={styles.readOnlyValue}>
+													{
+														documento.tipo_documento ||
+														documento.descripcion_tipo_documento ||
+														(documento.tipo_documento_id === '01' ? 'Carta de Presentación' : documento.tipo_documento_id === '02' ? 'Otros' : documento.tipo_documento_id)
+													}
+												</div>
+											</div>
+
+											<div style={styles.field}>
+												<label style={styles.label}>Estado</label>
+												<div style={styles.readOnlyValue}>
+													{documento.desc_estado_documento}
+												</div>
+											</div>
+
+											<div style={styles.field}>
+												<label style={styles.label}>Fecha Vigencia</label>
+												<div style={styles.readOnlyValue}>
+													{formatearFechaDisplay(documento.fecha_vigencia)}
+												</div>
+											</div>
+
+											<div style={{...styles.field, ...styles.fieldFull}}>
+												<label style={styles.label}>Ruta Documento</label>
+												<div style={styles.readOnlyValue}>
+													{documento.ruta_documento}
+												</div>
+											</div>
+
+											<div style={{...styles.field, ...styles.fieldFull}}>
+												<label style={styles.label}>Observaciones</label>
+												<div
+													style={{
+														...styles.readOnlyValue,
+														minHeight: '90px',
+														whiteSpace: 'pre-wrap'
+													}}
+												>
+													{documento.observaciones}
+												</div>
+											</div>
+										</div>
+
+										<div style={styles.actions}>
+											<button style={styles.btnPrimary} onClick={cerrarModal}>
+												Cerrar
+											</button>
+										</div>
+									</div>
+								</div>
+							);
+
+						}
 
     return (
 
@@ -444,134 +453,45 @@ if (modo === 'VER') {
                 <hr style={styles.divider} />
 
                 <div className="modal-doc-grid" style={styles.grid}>
+				
+					<div style={styles.field}>
+						<label style={styles.label}>Alcance *</label>
+						<select
+							value={form.alcance}
+							disabled={soloLectura}
+							style={{...styles.input, ...(soloLectura ? styles.inputDisabled : {})}}
+							onChange={(e)=>setForm({...form, alcance: e.target.value, tipo_documento_id: '', tipo_documento: ''})}>
+							<option value="">Seleccione...</option>
+							{
+								alcances.map(item => (	<option key={item.codigo_valor} value={item.codigo_valor}>
+															{item.descripcion}
+														</option>)
+											)
+							}
+						</select>
+					</div>
 
                     <div style={styles.field}>
-                        <label style={styles.label}>Tipo Documento</label>
-                        <div style={styles.readOnlyValue}>
-                            {
-                                documento.tipo_documento ||
-                                documento.descripcion_tipo_documento
-                            }
-                        </div>
-                    </div>
-
-                    <div style={styles.field}>
-                        <label style={styles.label}>Estado</label>
-                        <div style={styles.readOnlyValue}>
-                            {documento.desc_estado_documento}
-                        </div>
-                    </div>
-
-                    <div style={styles.field}>
-                        <label style={styles.label}>Fecha Vigencia</label>
-                        <div style={styles.readOnlyValue}>
-                            {formatearFechaDisplay(documento.fecha_vigencia)}
-                        </div>
-                    </div>
-
-                    <div style={styles.field}>
-                        <label style={styles.label}>Alcance</label>
-                        <div style={styles.readOnlyValue}>
-                            {documento.descripcion_alcance}
-                        </div>
-                    </div>
-
-                    <div style={{...styles.field, ...styles.fieldFull}}>
-                        <label style={styles.label}>Ruta Documento</label>
-                        <div style={styles.readOnlyValue}>
-                            {documento.ruta_documento}
-                        </div>
-                    </div>
-
-                    <div style={{...styles.field, ...styles.fieldFull}}>
-                        <label style={styles.label}>Observaciones</label>
-                        <div
-                            style={{
-                                ...styles.readOnlyValue,
-                                minHeight: '90px',
-                                whiteSpace: 'pre-wrap'
-                            }}
-                        >
-                            {documento.observaciones}
-                        </div>
-                    </div>
-
-                </div>
-
-                <div style={styles.actions}>
-                    <button style={styles.btnPrimary} onClick={cerrarModal}>
-                        Cerrar
-                    </button>
-                </div>
-
-            </div>
-
-        </div>
-
-    );
-
-}
-
-    return (
-
-        <div style={styles.overlay}>
-
-            <style>{responsiveCSS}</style>
-
-            <div style={styles.modal}>
-
-                <h2 style={styles.headerTitle}>{TITULOS[modo]}</h2>
-                <p style={styles.headerSubtitle}>{GRUPOS_DOCUMENTOS[grupoDocumento]}</p>
-
-                <hr style={styles.divider} />
-
-                <div className="modal-doc-grid" style={styles.grid}>
-
-                    <div style={styles.field}>
-                        <label style={styles.label}>Tipo Documento</label>
+                        <label style={styles.label}>Tipo Documento *</label>
 
                         {
-                            grupoDocumento === 'DOC_NOR'
-                            ?
                             <select
-                                disabled={soloLectura}
+                                disabled={soloLectura || !form.alcance}
                                 value={form.tipo_documento_id}
-                                style={{...styles.input, ...(soloLectura ? styles.inputDisabled : {})}}
-                                onChange={(e)=>
-                                    setForm({
-                                        ...form,
-                                        tipo_documento_id: e.target.value
-                                    })
-                                }
-                            >
+                                style={{...styles.input, ...(soloLectura || !form.alcance ? styles.inputDisabled : {})}}
+                                onChange={(e)=>setForm({...form,tipo_documento_id: e.target.value})}>
                                 <option value="">Seleccione</option>
-
                                 {
-                                    tiposDocumento.map(item => (
-                                        <option key={item.codigo_valor} value={item.codigo_valor}>
-                                            {item.codigo_valor} - {item.descripcion}
-                                        </option>
-                                    ))
+									tiposDocumento.map(item => (<option key={item.codigo_valor} value={item.codigo_valor}>
+																	{item.codigo_valor} - {item.descripcion}
+																</option>))
                                 }
-                            </select>
-                            :
-                            <input
-                                value={form.tipo_documento}
-                                disabled={soloLectura}
-                                style={{...styles.input, ...(soloLectura ? styles.inputDisabled : {})}}
-                                onChange={(e)=>
-                                    setForm({
-                                        ...form,
-                                        tipo_documento: e.target.value
-                                    })
-                                }
-                                placeholder="Tipo Documento"
-                            />
+                            </select>                            
                         }
                     </div>
 
                     <div style={styles.field}>
-                        <label style={styles.label}>Fecha Vigencia</label>
+                        <label style={styles.label}>Fecha Vigencia *</label>
                         <input
                             type="date"
                             disabled={soloLectura}
@@ -587,32 +507,7 @@ if (modo === 'VER') {
                     </div>
 
                     <div style={styles.field}>
-                        <label style={styles.label}>Alcance</label>
-                        <select
-                            value={form.alcance}
-                            disabled={soloLectura}
-                            style={{...styles.input, ...(soloLectura ? styles.inputDisabled : {})}}
-                            onChange={(e)=>
-                                setForm({
-                                    ...form,
-                                    alcance: e.target.value
-                                })
-                            }
-                        >
-                            <option value="">Seleccione...</option>
-
-                            {
-                                alcances.map(item => (
-                                    <option key={item.codigo_valor} value={item.codigo_valor}>
-                                        {item.descripcion}
-                                    </option>
-                                ))
-                            }
-                        </select>
-                    </div>
-
-                    <div style={styles.field}>
-                        <label style={styles.label}>Ruta Documento</label>
+                        <label style={styles.label}>Ruta Documento *</label>
                         <input
                             placeholder="Ruta Documento"
                             disabled={soloLectura}

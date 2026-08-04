@@ -1,3 +1,4 @@
+
 import {
     useEffect,
     useState
@@ -24,9 +25,19 @@ import {
     obtenerProximosVencer
 } from '../services/dashboard.service';
 
-// Reutilizamos el servicio que creamos para listar los expedientes por grupo corporativo
+// Reutilizamos el servicio para listar los expedientes por grupo corporativo
 import { listarPorGrupo } from '../services/documentos.service';
 
+const formatearFechaLocal = (fechaString) => {
+    if (!fechaString) return '';
+    const datePart = typeof fechaString === 'string' ? fechaString.split('T')[0] : new Date(fechaString).toISOString().split('T')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return fechaString;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+};
+
+// Misma paleta usada en DocumentsPage (navy sidebar + acentos azul/ámbar)
 const colors = {
     bg: '#f3f4f6',
     card: '#ffffff',
@@ -120,11 +131,14 @@ const styles = {
     },
 };
 
+// Determina si un registro de "estado" corresponde a vigente o vencido,
+// sin depender del orden en que llegue el arreglo del backend.
 const esVigente = (item) => {
     const ref = `${item.estado_documento || ''} ${item.descripcion || ''}`.toUpperCase();
-    return ref.includes('VIG') || ref.startsWith('V');
+    return ref.includes('VIG');
 };
 
+// Urgencia para "Próximos a Vencer": rojo <=7 días, ámbar <=30 días, verde el resto.
 const urgencia = (dias) => {
     if (dias <= 7) return { label: `${dias} día${dias === 1 ? '' : 's'}`, bg: colors.dangerBg, fg: colors.danger };
     if (dias <= 30) return { label: `${dias} días`, bg: '#fef3c7', fg: '#b45309' };
@@ -160,31 +174,55 @@ const responsiveCSS = `
     }
 `;
 
+// ── Helper seguro para leer el usuario del localStorage ───────────────────────
+const obtenerUsuario = () => {
+    try {
+        const raw = localStorage.getItem('usuario');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+};
+
+// ── Grupos documentales fijos para el dashboard del PROVEEDOR ─────────────────
+const CODIGOS_GRUPOS = ['DOC_NOR', 'DOC_EXT_NOR', 'DOC_REQ_ESTATAL', 'DOC_OTROS'];
+const NOMBRES_GRUPOS = {
+    'DOC_NOR':        'Gestión SST-MA',
+    'DOC_EXT_NOR':    'Gestión de Calidad',
+    'DOC_REQ_ESTATAL':'Gestión Seg. Patrimonial',
+    'DOC_OTROS':      'Gestión Transporte'
+};
+
 export default function DashboardPage() {
+
     const [resumen, setResumen] = useState(null);
     const [grupos, setGrupos] = useState([]);
     const [estados, setEstados] = useState([]);
     const [proximos, setProximos] = useState([]);
     const [loadingProveedor, setLoadingProveedor] = useState(true);
 
-    const usuarioRaw = localStorage.getItem('usuario');
-    const usuarioLogueado = usuarioRaw ? JSON.parse(usuarioRaw) : null;
-    const esProveedor = usuarioLogueado?.rol_codigo === 'PROVEEDOR';
-    const miProveedorId = usuarioLogueado?.proveedor_id;
+    // ── Identidad del usuario logueado ──────────────────────────────────────
+    const usuarioLogueado = obtenerUsuario();
+    const rolCodigo       = usuarioLogueado?.rol_codigo || '';
+    const esProveedor     = rolCodigo === 'PROVEEDOR';
+    const esConsultor     = rolCodigo === 'CONSULTOR';
+    const miProveedorId   = usuarioLogueado?.proveedor_id;
 
     useEffect(() => {
         if (esProveedor) {
             cargarDashboardProveedor();
         } else {
+            // ADMIN y CONSULTOR ven el dashboard general
             cargarDashboardAdmin();
         }
     }, [esProveedor, miProveedorId]);
 
+    // ── Dashboard ADMIN / CONSULTOR ──────────────────────────────────────────
     const cargarDashboardAdmin = async () => {
         try {
-            const resumenData = await obtenerResumen();
-            const gruposData = await obtenerDocumentosPorGrupo();
-            const estadosData = await obtenerDocumentosPorEstado();
+            const resumenData  = await obtenerResumen();
+            const gruposData   = await obtenerDocumentosPorGrupo();
+            const estadosData  = await obtenerDocumentosPorEstado();
             const proximosData = await obtenerProximosVencer();
 
             setResumen(resumenData);
@@ -196,37 +234,24 @@ export default function DashboardPage() {
         }
     };
 
+    // ── Dashboard PROVEEDOR (solo sus propios documentos) ────────────────────
     const cargarDashboardProveedor = async () => {
         if (!miProveedorId) {
             setLoadingProveedor(false);
             return;
         }
         try {
-            const codigosGrupos = ['DOC_NOR', 'DOC_EXT_NOR', 'DOC_REQ_ESTATAL', 'DOC_OTROS'];
-            const nombresGrupos = {
-                'DOC_NOR': 'Doc. Normativos',
-                'DOC_EXT_NOR': 'Doc. Extra Normativos',
-                'DOC_REQ_ESTATAL': 'Doc. Req. Estatal',
-                'DOC_OTROS': 'Doc. Otros'
-            };
-
-            let acumuladoDocs = [];
+            let acumuladoDocs   = [];
             let estadisticaGrupos = [];
 
             // Consultamos secuencialmente los 4 grupos documentales del proveedor logueado
-            for (const grupoCode of codigosGrupos) {
+            for (const grupoCode of CODIGOS_GRUPOS) {
                 const dataDocs = await listarPorGrupo(miProveedorId, grupoCode);
                 if (dataDocs && dataDocs.length > 0) {
                     acumuladoDocs = [...acumuladoDocs, ...dataDocs];
-                    estadisticaGrupos.push({
-                        descripcion: nombresGrupos[grupoCode],
-                        cantidad: dataDocs.length
-                    });
+                    estadisticaGrupos.push({ descripcion: NOMBRES_GRUPOS[grupoCode], cantidad: dataDocs.length });
                 } else {
-                    estadisticaGrupos.push({
-                        descripcion: nombresGrupos[grupoCode],
-                        cantidad: 0
-                    });
+                    estadisticaGrupos.push({ descripcion: NOMBRES_GRUPOS[grupoCode], cantidad: 0 });
                 }
             }
 
@@ -235,20 +260,20 @@ export default function DashboardPage() {
             const vencidosCount = acumuladoDocs.filter(d => d.estado_documento === 'C').length;
 
             setResumen({
-                total_proveedores: 'N/A', 
+                total_proveedores: 'N/A',
                 documentos_vigentes: vigentesCount,
                 documentos_vencidos: vencidosCount,
                 total_documentos: acumuladoDocs.length
             });
 
             setGrupos(estadisticaGrupos);
-            
+
             setEstados([
                 { descripcion: 'VIGENTE', cantidad: vigentesCount },
                 { descripcion: 'VENCIDO', cantidad: vencidosCount }
             ]);
 
-            // Filtrado de alertas: Documentos vigentes próximos a vencer en los siguientes 90 días
+            // Filtrado de alertas: documentos vigentes próximos a vencer en los siguientes 90 días
             const alertasVencimiento = acumuladoDocs.filter(d => {
                 if (d.estado_documento !== 'V') return false;
                 const diasRestantes = Math.ceil((new Date(d.fecha_vigencia) - new Date()) / 86400000);
@@ -266,6 +291,7 @@ export default function DashboardPage() {
         }
     };
 
+    // Próximos a vencer, ordenados por fecha más cercana primero
     const proximosOrdenados = [...proximos].sort(
         (a, b) => new Date(a.fecha_vigencia) - new Date(b.fecha_vigencia)
     );
@@ -274,15 +300,21 @@ export default function DashboardPage() {
         <MainLayout>
             <style>{responsiveCSS}</style>
 
+            {/* ── Encabezado dinámico por rol ─────────────────────────────── */}
             <h1 style={styles.heading}>
-                {esProveedor ? `Panel de Control - ${usuarioLogueado?.username}` : 'Dashboard SISGESTION'}
+                {esProveedor
+                    ? `Panel de Control - ${usuarioLogueado?.username}`
+                    : 'Dashboard SISGESTION'}
             </h1>
             <p style={{ color: colors.textMuted, margin: '5px 0 0 0', fontSize: '14px' }}>
-                {esProveedor 
-                    ? 'Resumen analítico y alertas del estado de vigencia de sus expedientes cargados.' 
-                    : 'Vista general del sistema para gestión de auditorías corporativas.'}
+                {esProveedor
+                    ? 'Resumen analítico y alertas del estado de vigencia de sus expedientes cargados.'
+                    : esConsultor
+                        ? 'Vista general del sistema. Acceso de solo lectura para auditorías corporativas.'
+                        : 'Vista general del sistema para gestión de auditorías corporativas.'}
             </p>
 
+            {/* ── PROVEEDOR sin ficha → aviso ──────────────────────────────── */}
             {esProveedor && !miProveedorId && !loadingProveedor ? (
                 <div style={{ ...styles.card, marginTop: '30px' }}>
                     <div style={styles.emptyState}>
@@ -291,8 +323,11 @@ export default function DashboardPage() {
                 </div>
             ) : (
                 <>
+                    {/* ── Tarjetas de estadísticas ─────────────────────────── */}
                     {resumen && (
                         <div className="stats-grid">
+
+                            {/* Primer stat: Proveedores (ADMIN/CONSULTOR) o Total Docs (PROVEEDOR) */}
                             {!esProveedor ? (
                                 <div style={styles.statCard(colors.primary)}>
                                     <p style={styles.statLabel}>Proveedores</p>
@@ -314,9 +349,11 @@ export default function DashboardPage() {
                                 <p style={styles.statLabel}>Documentos Vencidos</p>
                                 <p style={styles.statValue(colors.danger)}>{resumen.documentos_vencidos}</p>
                             </div>
+
                         </div>
                     )}
 
+                    {/* ── Gráfico de barras: documentos por grupo ──────────── */}
                     {grupos.length > 0 && (
                         <div style={{ ...styles.card, marginTop: '30px' }}>
                             <h2 style={styles.sectionTitle}>
@@ -324,8 +361,14 @@ export default function DashboardPage() {
                             </h2>
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={grupos}>
-                                    <XAxis dataKey="descripcion" tick={{ fill: colors.textMuted, fontSize: 12 }} />
-                                    <YAxis tick={{ fill: colors.textMuted, fontSize: 12 }} allowDecimals={false} />
+                                    <XAxis
+                                        dataKey="descripcion"
+                                        tick={{ fill: colors.textMuted, fontSize: 12 }}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: colors.textMuted, fontSize: 12 }}
+                                        allowDecimals={false}
+                                    />
                                     <Tooltip />
                                     <Bar dataKey="cantidad" fill={colors.primary} radius={[6, 6, 0, 0]} />
                                 </BarChart>
@@ -333,6 +376,7 @@ export default function DashboardPage() {
                         </div>
                     )}
 
+                    {/* ── Gráfico de torta: estado de documentos ───────────── */}
                     {estados.length > 0 && (
                         <div style={{ ...styles.card, marginTop: '30px' }}>
                             <h2 style={styles.sectionTitle}>Estado de Documentos</h2>
@@ -347,7 +391,9 @@ export default function DashboardPage() {
                                                 dataKey="cantidad"
                                                 nameKey="descripcion"
                                                 outerRadius={120}
-                                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                label={({ name, percent }) =>
+                                                    `${name} ${(percent * 100).toFixed(0)}%`
+                                                }
                                             >
                                                 {estados.map((item, index) => (
                                                     <Cell
@@ -364,14 +410,17 @@ export default function DashboardPage() {
                         </div>
                     )}
 
+                    {/* ── Tabla de próximos a vencer ───────────────────────── */}
                     <div style={{ ...styles.card, marginTop: '30px' }}>
                         <h2 style={styles.sectionTitle}>
-                            {esProveedor ? 'Mis Documentos próximos a vencer' : 'Proveedores con documentos próximos a vencer'}
+                            {esProveedor
+                                ? 'Mis Documentos próximos a vencer'
+                                : 'Proveedores con documentos próximos a vencer'}
                         </h2>
 
                         {proximosOrdenados.length === 0 ? (
                             <div style={styles.emptyState}>
-                                No existen documentos próximos a vencer en los siguientes 90 días.
+                                No existen documentos próximos a vencer.
                             </div>
                         ) : (
                             <div className="table-scroll">
@@ -385,14 +434,16 @@ export default function DashboardPage() {
                                     </thead>
                                     <tbody>
                                         {proximosOrdenados.map((item, index) => {
-                                            const dias = Math.ceil((new Date(item.fecha_vigencia) - new Date()) / 86400000);
+                                            const dias = Math.ceil(
+                                                (new Date(item.fecha_vigencia) - new Date()) / 86400000
+                                            );
                                             const u = urgencia(dias);
 
                                             return (
                                                 <tr key={index}>
                                                     <td style={styles.td}>{item.proveedor}</td>
                                                     <td style={styles.td}>
-                                                        {new Date(item.fecha_vigencia).toLocaleDateString('es-PE')}
+                                                        {formatearFechaLocal(item.fecha_vigencia)}
                                                     </td>
                                                     <td style={styles.td}>
                                                         <span style={styles.badge(u.bg, u.fg)}>

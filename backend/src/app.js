@@ -33,7 +33,7 @@ app.use('/api',proveedoresRoutes);
 app.use('/api',documentosRoutes);
 app.use('/api',procesosRoutes);
 app.use('/api',dashboardRoutes);
-app.use('/api', usuariosRoutes);
+app.use('/api',usuariosRoutes);
 
 module.exports = app;
 

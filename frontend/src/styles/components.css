@@ -34,11 +34,11 @@
 
 .btn-secondary {
 
-    background: #f3f4f6;
+    background: white;
 
-    color: #374151;
+    color: var(--text-primary);
 
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-color);
 
     border-radius: 8px;
 
@@ -46,17 +46,16 @@
 
     cursor: pointer;
 
-    font-weight: 600;
-
 }
 
 .btn-secondary:hover {
 
-    background: #e5e7eb;
+    background: #F8FAFC;
 
-    border-color: #9ca3af;
+    border-color: #CBD5E1;
 
 }
+
 
 .input {
 

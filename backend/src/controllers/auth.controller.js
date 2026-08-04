@@ -24,14 +24,15 @@ const login = async (req,res) => {
         });
 
     }
-catch(error) {
-    console.error("ERROR LOGIN:", error);
+    catch(error) {
 
-    return res.status(500).json({
-        success: false,
-        message: error.message
-    });
-}
+        return res.status(401).json({
+            success: false,
+            message:
+                error.message
+        });
+
+    }
 
 };
 

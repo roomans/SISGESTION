@@ -1,59 +1,59 @@
-        const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
-        const authenticateToken = (
-            req,
-            res,
-            next
-        ) => {
+const authenticateToken = (
+    req,
+    res,
+    next
+) => {
 
-            const authHeader =
-                req.headers.authorization;
+    const authHeader =
+        req.headers.authorization;
 
-            if (!authHeader) {
+    if (!authHeader) {
 
-                return res.status(401).json({
-                    success: false,
-                    message: 'Token requerido'
-                });
+        return res.status(401).json({
+            success: false,
+            message: 'Token requerido'
+        });
 
-            }
+    }
 
-            const token =
-                authHeader.split(' ')[1];
+    const token =
+        authHeader.split(' ')[1];
 
-            if (!token) {
+    if (!token) {
 
-                return res.status(401).json({
-                    success: false,
-                    message: 'Token inválido'
-                });
+        return res.status(401).json({
+            success: false,
+            message: 'Token inválido'
+        });
 
-            }
+    }
 
-            try {
+    try {
 
-                const decoded =
-                    jwt.verify(
-                        token,
-                        process.env.JWT_SECRET
-                    );
+        const decoded =
+            jwt.verify(
+                token,
+                process.env.JWT_SECRET
+            );
 
-                req.user = decoded;
+        req.user = decoded;
 
-                next();
+        next();
 
-            }
-            catch(error) {
+    }
+    catch(error) {
 
-                return res.status(403).json({
-                    success: false,
-                    message: 'Token expirado o inválido'
-                });
+        return res.status(403).json({
+            success: false,
+            message: 'Token expirado o inválido'
+        });
 
-            }
+    }
 
-        };
+};
 
-        module.exports = {
-            authenticateToken
-        };
+module.exports = {
+    authenticateToken
+};

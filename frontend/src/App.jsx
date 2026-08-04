@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar'; // <-- Revisa que la ruta de tu Sidebar sea la correcta
+import Sidebar from './components/Sidebar';
 
 // 1. TUS PÁGINAS ACTUALES (Entran directo, ya que ellas mismas renderizan su propio Sidebar)
 import LoginPage from './pages/LoginPage';
@@ -18,7 +18,7 @@ import UserDetailPage from './modules/usuarios/pages/UserDetailPage';
 function AdminLayout({ children }) {
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
-            <Sidebar /> 
+            <Sidebar />
             <div style={{ flex: 1, height: '100vh', overflowY: 'auto' }}>
                 {children}
             </div>
@@ -40,7 +40,7 @@ function App() {
                 <Route path="/processes" element={<ProcessesPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/alerts" element={<AlertsPage />} />
-                
+
                 {/* Tus nuevas rutas de usuarios envueltas de manera controlada */}
                 <Route path="/usuarios" element={<AdminLayout><UsersPage /></AdminLayout>} />
                 <Route path="/usuarios/:id" element={<AdminLayout><UserDetailPage /></AdminLayout>} />

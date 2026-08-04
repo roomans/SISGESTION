@@ -6,26 +6,26 @@ const obtenerResumen = async () => {
         SELECT
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MAE_PROVEEDOR"
+                FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR"
                 WHERE status = 'A'
             ) total_proveedores,
 
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MOV_DOCUMENTOS"
+                FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
                 WHERE status = 'A'
             ) total_documentos,
 
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MOV_DOCUMENTOS"
+                FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
                 WHERE estado_documento = 'V'
                 AND status = 'A'
             ) documentos_vigentes,
 
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MOV_DOCUMENTOS"
+                FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
                 WHERE estado_documento = 'C'
                 AND status = 'A'
             ) documentos_vencidos
@@ -45,8 +45,8 @@ const obtenerDocumentosPorGrupo = async () => {
     d.grupo_documentos,
     lv.descripcion,
     COUNT(*) cantidad
-FROM "SISGES"."MOV_DOCUMENTOS" d
-JOIN "SISGES"."MAE_LISTA_VALORES" lv
+FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
     ON lv.codigo_valor = d.grupo_documentos
    AND lv.cod_grupo = '0005'
    AND lv.tipo_grupo = 'GRUPO_DOCUMENTO'
@@ -70,8 +70,8 @@ const obtenerDocumentosPorEstado = async () => {
             d.estado_documento,
             lv.descripcion,
             COUNT(*) cantidad
-        FROM "SISGES"."MOV_DOCUMENTOS" d
-        INNER JOIN "SISGES"."MAE_LISTA_VALORES" lv
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+        INNER JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
             ON lv.codigo_valor = d.estado_documento
            AND lv.cod_grupo = '0000'
            AND lv.tipo_grupo = 'STATUS_DOCUMENTO'
@@ -109,8 +109,8 @@ const obtenerProveedoresVencidos = async () => {
 
             COUNT(*) documentos_vencidos
 
-        FROM "SISGES"."MOV_DOCUMENTOS" d
-        INNER JOIN "SISGES"."MAE_PROVEEDOR" p
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+        INNER JOIN "SISGES_PRUEBAS"."MAE_PROVEEDOR" p
             ON p.proveedor_id = d.proveedor_id
 
         WHERE d.estado_documento = 'C'
@@ -167,9 +167,9 @@ const obtenerDocumentosProximosVencer = async () => {
                 d.fecha_vigencia - CURRENT_DATE
             ) dias_restantes
 
-        FROM "SISGES"."MOV_DOCUMENTOS" d
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
 
-        INNER JOIN "SISGES"."MAE_PROVEEDOR" p
+        INNER JOIN "SISGES_PRUEBAS"."MAE_PROVEEDOR" p
             ON p.proveedor_id = d.proveedor_id
 
         WHERE d.status = 'A'

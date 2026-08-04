@@ -1,10 +1,22 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '../layouts/MainLayout';
-import { buscarProveedor, obtenerProveedorPorId } from '../services/providers.service';
-import { listarPorGrupo } from '../services/documentos.service';
+import {buscarProveedor, obtenerProveedorPorId} from '../services/providers.service';
+import {listarPorGrupo} from '../services/documentos.service';
 import ModalDocumento from '../components/ModalDocumento';
-import { Lock } from 'lucide-react';
+import {obtenerCatalogo} from '../services/catalogos.service';
+import * as XLSX from 'xlsx';
 
+const formatearFechaLocal = (fechaString) => {
+    if (!fechaString) return '';
+    const datePart = typeof fechaString === 'string' ? fechaString.split('T')[0] : new Date(fechaString).toISOString().split('T')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return fechaString;
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+};
+
+
+// Paleta tomada del layout general del sistema (sidebar navy + acentos azul/ámbar)
 const colors = {
 	bg: '#f3f4f6',
 	card: '#ffffff',
@@ -33,6 +45,11 @@ const styles = {
 		fontSize: '22px',
 		fontWeight: 700,
 		color: colors.text,
+		margin: '0 0 4px 0',
+	},
+	subtitle: {
+		fontSize: '14px',
+		color: colors.textMuted,
 		margin: '0 0 20px 0',
 	},
 	sectionTitle: {
@@ -80,6 +97,16 @@ const styles = {
 	},
 	btnAmber: {
 		background: colors.amber,
+		color: '#fff',
+		border: 'none',
+		borderRadius: '8px',
+		padding: '9px 18px',
+		fontSize: '14px',
+		fontWeight: 600,
+		cursor: 'pointer',
+	},
+	btnSuccess: {
+		background: colors.success,
 		color: '#fff',
 		border: 'none',
 		borderRadius: '8px',
@@ -137,6 +164,17 @@ const styles = {
 		background: ok ? colors.successBg : colors.dangerBg,
 		color: ok ? colors.success : colors.danger,
 	}),
+	roleBadge: (color) => ({
+		display: 'inline-block',
+		padding: '3px 10px',
+		borderRadius: '999px',
+		fontSize: '11px',
+		fontWeight: 700,
+		background: color === 'primary' ? '#dbeafe' : color === 'amber' ? '#fef3c7' : '#f3f4f6',
+		color: color === 'primary' ? colors.primary : color === 'amber' ? '#b45309' : colors.textMuted,
+		marginLeft: '8px',
+		verticalAlign: 'middle',
+	}),
 	infoBlock: {
 		marginTop: '20px',
 		marginBottom: '20px',
@@ -183,20 +221,37 @@ const styles = {
 		fontWeight: 600,
 		cursor: 'pointer',
 	},
-	linkBtnDisabled: {
-		background: '#f3f4f6',
-		color: '#9ca3af',
-		border: '1px solid #e5e7eb',
-		borderRadius: '6px',
-		padding: '6px 14px',
-		fontSize: '13px',
-		fontWeight: 600,
-		cursor: 'not-allowed',
-		display: 'inline-flex',
-		alignItems: 'center',
-		gap: '6px',
-		boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+	infoGrupo: {
+        marginTop: '16px',
+        marginBottom: '18px',
+        padding: '14px 18px',
+        minHeight: '70px',
+        background: '#F8FAFC',
+        border: '1px solid #D8DEE9',
+        borderLeft: '5px solid #2563EB',
+        borderRadius: '8px',
+        color: '#374151',
+        fontSize: '14px',
+        lineHeight: '1.6',
+        whiteSpace: 'pre-wrap'
+    },
+	emptyState: {
+		padding: '32px 16px',
+		textAlign: 'center',
+		color: colors.textMuted,
+		fontSize: '14px',
 	},
+	alertInfo: {
+		background: '#eff6ff',
+		border: '1px solid #bfdbfe',
+		borderLeft: '4px solid #2563eb',
+		borderRadius: '8px',
+		padding: '14px 18px',
+		fontSize: '14px',
+		color: '#1e40af',
+		marginBottom: '20px',
+	},
+	
 };
 
 const responsiveCSS = `
@@ -215,249 +270,466 @@ const responsiveCSS = `
     }
 `;
 
+// ── Helpers de rol ─────────────────────────────────────────────────────────────
+const obtenerUsuario = () => {
+	try {
+		const raw = localStorage.getItem('usuario');
+		return raw ? JSON.parse(raw) : null;
+	} catch {
+		return null;
+	}
+};
+
 export default function DocumentsPage() {
-	const [tipoBusqueda, setTipoBusqueda] = useState('DOCUMENTO');
-	const [valorBusqueda, setValorBusqueda] = useState('');
-	const [proveedores, setProveedores] = useState([]);
-	const [proveedorSeleccionado, setProveedorSeleccionado] = useState(null);
-	
-	const [grupoSeleccionado, setGrupoSeleccionado] = useState('DOC_NOR');
-	const [documentos, setDocumentos] = useState([]);
+		// ── Identidad del usuario logueado ──────────────────────────────────────
+		const usuarioLogueado = obtenerUsuario();
+		const rolCodigo       = usuarioLogueado?.rol_codigo || '';
+		const esProveedor     = rolCodigo === 'PROVEEDOR';
+		const esConsultor     = rolCodigo === 'CONSULTOR';
+		const miProveedorId   = usuarioLogueado?.proveedor_id;
 
-	const [modalDocumentoVisible, setModalDocumentoVisible] = useState(false);
-	const [modoDocumento, setModoDocumento] = useState('NUEVO');
-	const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+		// Solo ADMIN puede agregar/editar; PROVEEDOR puede agregar/editar sus propios docs;
+		// CONSULTOR solo puede ver.
+		const puedeEscribir = !esConsultor;
 
-	const usuarioRaw = localStorage.getItem('usuario');
-	const usuarioLogueado = usuarioRaw ? JSON.parse(usuarioRaw) : null;
-	const esProveedor = usuarioLogueado?.rol_codigo === 'PROVEEDOR';
-	const esConsultor = usuarioLogueado?.rol_codigo === 'CONSULTOR'; // 👁️ Rol Consultor detectado[cite: 11]
-	const miProveedorId = usuarioLogueado?.proveedor_id;
+		// ── Estado ──────────────────────────────────────────────────────────────
+		const [tipoBusqueda,setTipoBusqueda] = useState('RAZON');
+		const [valorBusqueda,setValorBusqueda] = useState('');
+		const [proveedores,setProveedores] = useState([]);
+		const [proveedorSeleccionado,setProveedorSeleccionado] = useState(null);
+		const [grupoSeleccionado,setGrupoSeleccionado] = useState('');
+		const [documentos,setDocumentos] = useState([]);
+		const [grupos,setGrupos] = useState([]);
+		const [textoGrupo,setTextoGrupo] = useState('');
+		const [cargandoProveedor, setCargandoProveedor] = useState(false);
 
-	useEffect(() => {
-		const inicializarProveedor = async () => {
-			if ((esProveedor || esConsultor) && miProveedorId) {
+		const [modalDocumentoVisible,setModalDocumentoVisible] = useState(false);
+		const [modoDocumento, setModoDocumento] = useState('NUEVO');
+		const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
+
+		// ── Carga catálogo de grupos ─────────────────────────────────────────────
+		const cargarGrupos = async () => {
 				try {
-					const infoFicha = await obtenerProveedorPorId(miProveedorId);
-					setProveedorSeleccionado(infoFicha);
-					await cargarDocumentos(miProveedorId, grupoSeleccionado);
-				} catch (error) {
-					console.error("Error cargando documentos de entidad:", error);
-				}
+						const data = await obtenerCatalogo('0005','GRUPO_DOCUMENTO');
+						console.log("CATALOGO",data);
+						setGrupos(data);
+
+						if(data.length > 0) {
+								setGrupoSeleccionado(data[0].codigo_valor);
+								setTextoGrupo(data[0].texto_boton);
+						}
+					}
+				catch(error) {
+						console.error(error);
+					}
+			};
+
+		// ── Carga documentos ────────────────────────────────────────────────────
+		const cargarDocumentos = async (proveedorId,grupo) => {
+				try {
+						const data = await listarPorGrupo(proveedorId,grupo);
+						console.log("listarPorGrupo",data);
+						setDocumentos(data);
+					}
+				catch(error) {
+						console.error(error);
+					}
+			};
+
+		const exportarExcel = () => {
+			if (documentos.length === 0) {
+				alert("No hay documentos para exportar");
+				return;
+			}
+
+			const data = documentos.map(item => ({
+				"Alcance": item.descripcion_alcance || '',
+				"Tipo Documento": item.descripcion_tipo_documento || item.tipo_documento || 
+					(item.tipo_documento_id === '01' ? 'Carta de Presentación' : item.tipo_documento_id === '02' ? 'Otros' : item.tipo_documento_id || ''),
+				"Fecha Vigencia": formatearFechaLocal(item.fecha_vigencia),
+				"Estado": item.estado_documento === 'V' ? 'VIGENTE' : 'VENCIDO'
+			}));
+
+			const ws = XLSX.utils.json_to_sheet(data);
+			const wb = XLSX.utils.book_new();
+			XLSX.utils.book_append_sheet(wb, ws, "Documentos");
+			
+			XLSX.writeFile(wb, `Documentos_${proveedorSeleccionado?.nro_documento || 'Export'}.xlsx`);
+		};
+
+		const descargarTodo = async () => {
+			if (!proveedorSeleccionado) return;
+			try {
+				const promesas = grupos.map(async (g) => {
+					const docs = await listarPorGrupo(proveedorSeleccionado.proveedor_id, g.codigo_valor);
+					return {
+						grupoNombre: g.descripcion,
+						documentos: docs || []
+					};
+				});
+				const resultados = await Promise.all(promesas);
+
+				const excelRows = [];
+				const razonSocialStr = proveedorSeleccionado.razon_social || 
+					`${proveedorSeleccionado.nombre || ''} ${proveedorSeleccionado.apellido_paterno || ''} ${proveedorSeleccionado.apellido_materno || ''}`.trim();
+					
+				excelRows.push({ "Columna": `RAZÓN SOCIAL: ${razonSocialStr}` });
+				excelRows.push({ "Columna": `DOCUMENTO: ${proveedorSeleccionado.nro_documento || ''}` });
+				excelRows.push({ "Columna": "" });
+
+				resultados.forEach(res => {
+					if (res.documentos.length > 0) {
+						excelRows.push({ "Columna": `=== GRUPO: ${res.grupoNombre.toUpperCase()} ===` });
+						excelRows.push({
+							"Columna": "Alcance",
+							"Tipo": "Tipo Documento",
+							"Vigencia": "Fecha Vigencia",
+							"Estado": "Estado",
+							"Ruta": "Ruta Documento",
+							"Observaciones": "Observaciones"
+						});
+
+						res.documentos.forEach(doc => {
+							excelRows.push({
+								"Columna": doc.descripcion_alcance || doc.alcance || '',
+								"Tipo": doc.descripcion_tipo_documento || doc.tipo_documento || 
+									(doc.tipo_documento_id === '01' ? 'Carta de Presentación' : doc.tipo_documento_id === '02' ? 'Otros' : doc.tipo_documento_id || ''),
+								"Vigencia": formatearFechaLocal(doc.fecha_vigencia),
+								"Estado": doc.estado_documento === 'V' ? 'VIGENTE' : 'VENCIDO',
+								"Ruta": doc.ruta_documento || '',
+								"Observaciones": doc.observaciones || ''
+							});
+						});
+						excelRows.push({ "Columna": "" });
+					}
+				});
+
+				const ws = XLSX.utils.json_to_sheet(excelRows, { skipHeader: true });
+				const wb = XLSX.utils.book_new();
+				XLSX.utils.book_append_sheet(wb, ws, "Todos los Documentos");
+				
+				XLSX.writeFile(wb, `Todos_Documentos_${proveedorSeleccionado.nro_documento || 'Proveedor'}.xlsx`);
+			} catch (error) {
+				console.error("Error al descargar todos los documentos:", error);
+				alert("Ocurrió un error al intentar descargar todos los documentos.");
 			}
 		};
-		inicializarProveedor();
-	}, [esProveedor, esConsultor, miProveedorId]);
 
-	const buscar = async () => {
-		try {
-			const data = await buscarProveedor(tipoBusqueda, valorBusqueda);
-			if (tipoBusqueda === 'DOCUMENTO') {
-				setProveedorSeleccionado(data);
-				setProveedores([]);
-				await cargarDocumentos(data.proveedor_id, grupoSeleccionado);
-			} else {
-				setProveedores(data);
-				setProveedorSeleccionado(null);
+		// ── Búsqueda (solo ADMIN / CONSULTOR) ───────────────────────────────────
+		const buscar = async () => {
+				try {
+						const data = await buscarProveedor(tipoBusqueda,valorBusqueda);
+						if(tipoBusqueda === 'DOCUMENTO') {
+								setProveedorSeleccionado(data);
+								setProveedores([]);
+								await cargarDocumentos(data.proveedor_id,grupoSeleccionado);
+							}
+						else {
+								setProveedores(data);
+								setProveedorSeleccionado(null);
+							}
+					}
+				catch(error) {
+						alert(error.response?.data?.message || error.message);
+					}
+			};
+
+		// ── Auto-carga para PROVEEDOR ────────────────────────────────────────────
+		const cargarDatosProveedor = async () => {
+				if (!miProveedorId) return;
+				setCargandoProveedor(true);
+				try {
+						// Usamos obtenerProveedorPorId con el ID interno del proveedor (viene del token JWT)
+						const fichaData = await obtenerProveedorPorId(miProveedorId);
+						if (fichaData) {
+							setProveedorSeleccionado(fichaData);
+						}
+						await cargarDocumentos(miProveedorId, grupoSeleccionado || grupos[0]?.codigo_valor || '');
+					}
+				catch(error) {
+						console.error("Error cargando datos del proveedor:", error);
+					}
+				finally {
+						setCargandoProveedor(false);
+					}
+			};
+
+		// ── Efectos iniciales ────────────────────────────────────────────────────
+		useEffect(() => {
+			cargarGrupos();
+		}, []);
+
+		// Una vez que los grupos están listos, si es PROVEEDOR auto-cargamos sus docs
+		useEffect(() => {
+			if (esProveedor && grupos.length > 0) {
+				cargarDatosProveedor();
 			}
-		} catch (error) {
-			alert(error.response?.data?.message || error.message);
-		}
-	};
+		}, [esProveedor, grupos]);
 
-	const cargarDocumentos = async (proveedorId, group) => {
-		try {
-			const data = await listarPorGrupo(proveedorId, group);
-			setDocumentos(data);
-		} catch (error) {
-			console.error(error);
-		}
-	};
+		// ── Etiqueta del rol para mostrar en el título ───────────────────────────
+		const rolLabel = esProveedor ? 'PROVEEDOR' : esConsultor ? 'CONSULTOR' : 'ADMIN';
+		const rolColor = esProveedor ? 'primary' : esConsultor ? 'amber' : 'gray';
 
-	const grupos = [
-		{ codigo: 'DOC_NOR', nombre: 'Doc. Normativos' },
-		{ codigo: 'DOC_EXT_NOR', nombre: 'Doc. Extra Normativos' },
-		{ codigo: 'DOC_REQ_ESTATAL', nombre: 'Doc. Req. Estatal' },
-		{ codigo: 'DOC_OTROS', nombre: 'Doc. Otros' },
-	];
+		return (
+			<MainLayout>
+				<style>{responsiveCSS}</style>
+				<div className="documentos-card" style={styles.card}>
 
-	// 🔒 CONTROL EN CALIENTE DE LA SESIÓN[cite: 11]
-	const usuarioRawFresco = localStorage.getItem('usuario');
-	const usuarioLogueadoFresco = usuarioRawFresco ? JSON.parse(usuarioRawFresco) : null;
-	const bloqueadoPorAdminEnSesion = usuarioLogueadoFresco?.primer_ingreso === 'L';
+					<h2 style={styles.title}>
+						Documentos
+						<span style={styles.roleBadge(rolColor)}>{rolLabel}</span>
+					</h2>
 
-	const rawRegistro = proveedorSeleccionado?.cod_estado_registro || proveedorSeleccionado?.COD_ESTADO_REGISTRO || 'B';
-	const rawEdicion = proveedorSeleccionado?.cod_estado_edicion || proveedorSeleccionado?.COD_ESTADO_EDICION || 'L';
+					{/* Subtítulo contextual por rol */}
+					<p style={styles.subtitle}>
+						{esProveedor
+							? 'Gestión de sus expedientes documentales. Puede agregar y editar sus propios documentos.'
+							: esConsultor
+								? 'Consulta de expedientes documentales de proveedores. Acceso de solo lectura.'
+								: 'Búsqueda y gestión de expedientes documentales por proveedor.'}
+					</p>
 
-	const estadoRegistro = String(rawRegistro).trim().toUpperCase();
-	const estadoEdicion = String(rawEdicion).trim().toUpperCase();
-
-	// Permite editar si es Admin, Proveedor Habilitado u Observado (Excluye tajantemente al Consultor)[cite: 11]
-	const puedeEditarGubernamental = !esConsultor && (!esProveedor || (
-		!bloqueadoPorAdminEnSesion && 
-		(estadoRegistro === 'B' || estadoRegistro === 'O' || estadoEdicion === 'H')
-	));
-
-	return (
-		<MainLayout>
-			<style>{responsiveCSS}</style>
-			<div className="documentos-card" style={styles.card}>
-
-				<h2 style={styles.title}>Documentos</h2>
-
-				{(!esProveedor || esConsultor) && (
-					<>
-						<div style={styles.radioRow}>
-							<label style={styles.radioLabel}>
-								<input type="radio" checked={tipoBusqueda === 'DOCUMENTO'} onChange={() => setTipoBusqueda('DOCUMENTO')} />
-								Documento
-							</label>
-
-							<label style={styles.radioLabel}>
-								<input type="radio" checked={tipoBusqueda === 'RAZON'} onChange={() => setTipoBusqueda('RAZON')} />
-								Razón Social
-							</label>
+					{/* ── Aviso para CONSULTOR ──────────────────────────────────── */}
+					{esConsultor && (
+						<div style={styles.alertInfo}>
+							⚠️ <strong>Modo consulta:</strong> Usted tiene acceso de solo lectura. No puede agregar ni editar documentos.
 						</div>
+					)}
 
-						<div className="documentos-search-row" style={styles.searchRow}>
-							<input
-								style={styles.input}
-								value={valorBusqueda}
-								onChange={(e) => setValorBusqueda(e.target.value)}
-								placeholder="Valor búsqueda"
-							/>
-							<button style={styles.btnPrimary} onClick={buscar}>Buscar</button>
+					{/* ── Aviso sin ficha para PROVEEDOR ───────────────────────── */}
+					{esProveedor && !miProveedorId && (
+						<div style={styles.emptyState}>
+							Por favor, complete su registro de Ficha Informativa en la sección de Proveedores para gestionar sus documentos.
 						</div>
+					)}
 
-						{proveedores.length > 0 && (
-							<div className="table-scroll">
-								<table style={styles.table}>
-									<thead>
-										<tr>
-											<th style={styles.th}>Documento</th>
-											<th style={styles.th}>Razón Social</th>
-											<th style={styles.th}>Acción</th>
-										</tr>
-									</thead>
-									<tbody>
-										{proveedores.map(item => (
-											<tr key={item.proveedor_id}>
-												<td style={styles.td}>{item.nro_documento}</td>
-												<td style={styles.td}>
-													{item.razon_social || `${item.nombre || ''} ${item.apellido_paterno || ''} ${item.apellido_materno || ''}`}
-												</td>
-												<td style={styles.td}>
-													<button
-														style={styles.linkBtn}
-														onClick={async () => {
-															setProveedorSeleccionado(item);
-															await cargarDocumentos(item.proveedor_id, grupoSeleccionado);
-														}}
-													>
-														Seleccionar
-													</button>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
+					{/* ── Buscador (solo para ADMIN y CONSULTOR) ───────────────── */}
+					{!esProveedor && (
+						<>
+							<div style={styles.radioRow}>
+
+								<label style={styles.radioLabel}>
+									<input type="radio" checked={tipoBusqueda ==='RAZON'} onChange={()=>setTipoBusqueda('RAZON')}/>
+									Razón Social
+								</label>
+
+								<label style={styles.radioLabel}>
+									<input type="radio" checked={tipoBusqueda ==='DOCUMENTO'} onChange={()=>setTipoBusqueda('DOCUMENTO')}/>
+									Documento
+								</label>
+
 							</div>
-						)}
-					</>
-				)}
 
-				{proveedorSeleccionado && (
-					<>
-						<div style={styles.infoBlock}>
-							<p style={styles.infoLine}>
-								<b>Razón Social:</b>{' '}
-								{proveedorSeleccionado.razon_social || `${proveedorSeleccionado.nombre || ''} ${proveedorSeleccionado.apellido_paterno || ''} ${proveedorSeleccionado.apellido_materno || ''}`}
-							</p>
-							<p style={styles.infoLine}>
-								<b>CIIU:</b>{' '}
-								{proveedorSeleccionado.ciiu}
-								{' - '}
-								{proveedorSeleccionado.descripcion_ciiu || 'ACTIVIDAD ECONÓMICA'}
-							</p>
-							<p style={styles.infoLine}>
-								<b>UBIGEO:</b>{' '}
-								{proveedorSeleccionado.ubigeo}
-								{' - '}
-								{proveedorSeleccionado.departamento}
-								{' / '}
-								{proveedorSeleccionado.provincia}
-								{' / '}
-								{proveedorSeleccionado.ciudad || proveedorSeleccionado.distrito}
-							</p>
-						</div>
+							<div className="documentos-search-row" style={styles.searchRow}>
+								<input
+									style={styles.input}
+									value={valorBusqueda}
+									onChange={(e)=> setValorBusqueda(e.target.value)}
+									placeholder="Valor búsqueda"
+									onKeyDown={(e) => e.key === 'Enter' && buscar()}
+								/>
 
-						<hr style={styles.divider} />
+								<button style={styles.btnPrimary} onClick={buscar}>Buscar</button>
+							</div>
+						</>
+					)}
 
-						<h3 style={styles.sectionTitle}>Documentos del Proveedor</h3>
+					{/* ── Indicador de carga (PROVEEDOR) ───────────────────────── */}
+					{esProveedor && cargandoProveedor && (
+						<div style={styles.emptyState}>Cargando sus documentos…</div>
+					)}
 
-						<div style={styles.tabsRow}>
-							{grupos.map(g => (
-								<button
-									key={g.codigo}
-									style={grupoSeleccionado === g.codigo ? styles.btnGhostActive : styles.btnGhost}
-									onClick={async () => {
-										setGrupoSeleccionado(g.codigo);
-										await cargarDocumentos(proveedorSeleccionado.proveedor_id, g.codigo);
-									}}
-								>
-									{g.nombre}
-								</button>
-							))}
-						</div>
-
-						{/*  REGLA: Si es CONSULTOR, el botón de agregar NO se renderiza en lo absoluto */}
-						{!esConsultor && (
-							<button
-								style={styles.btnPrimary}
-								onClick={() => {
-									setDocumentoSeleccionado(null);
-									setModoDocumento('NUEVO');
-									setModalDocumentoVisible(true);
-								}}
-							>
-								Agregar Documento
-							</button>
-						)}
+					{/* ── Lista de resultados de búsqueda ──────────────────────── */}
+					{
+						proveedores.length > 0 &&
 
 						<div className="table-scroll">
+						<table style={styles.table}>
+
+							<thead>
+								<tr>
+									<th style={styles.th}>Nº Documento</th>
+									<th style={styles.th}>Razón Social</th>
+									<th style={styles.th}>Acción</th>
+								</tr>
+							</thead>
+
+							<tbody>
+								{proveedores.map(item => (
+									<tr key={item.proveedor_id}>
+										<td style={styles.td}>{item.nro_documento}</td>
+										<td style={styles.td}>
+											{
+												item.razon_social ||
+												`${item.nombre || ''} ${item.apellido_paterno || ''} ${item.apellido_materno || ''}`
+											}
+										</td>
+										<td style={styles.td}>
+											<button
+												style={styles.linkBtn}
+												onClick={async ()=>{setProveedorSeleccionado(item);await cargarDocumentos(item.proveedor_id,grupoSeleccionado);}}
+											>
+												Seleccionar
+											</button>
+										</td>
+									</tr>
+								))}
+							</tbody>
+
+						</table>
+						</div>
+					}
+
+					{/* ── Detalle del proveedor + documentos ───────────────────── */}
+					{
+						proveedorSeleccionado &&
+
+						<>
+
+							<div style={{ ...styles.infoBlock, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+								<div>
+									<p style={styles.infoLine}>
+										<b>Razón Social:</b>{' '}
+										{
+											proveedorSeleccionado.razon_social ||
+											`${proveedorSeleccionado.nombre || ''} ${proveedorSeleccionado.apellido_paterno || ''} ${proveedorSeleccionado.apellido_materno || ''}`
+										}
+									</p>
+
+									<p style={styles.infoLine}>
+										<b>CIIU:</b>{' '}
+										{proveedorSeleccionado.ciiu}
+										{' - '}
+										{proveedorSeleccionado.descripcion_ciiu}
+									</p>
+
+									<p style={styles.infoLine}>
+										<b>UBIGEO:</b>{' '}
+										{proveedorSeleccionado.ubigeo}
+										{' - '}
+										{proveedorSeleccionado.departamento}
+										{' / '}
+										{proveedorSeleccionado.provincia}
+										{' / '}
+										{proveedorSeleccionado.ciudad}
+									</p>
+								</div>
+								<div style={{ alignSelf: 'center' }}>
+									<button
+										onClick={descargarTodo}
+										style={{
+											background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)',
+											color: 'white',
+											border: 'none',
+											padding: '12px 24px',
+											borderRadius: '8px',
+											cursor: 'pointer',
+											fontWeight: 'bold',
+											fontSize: '14px',
+											boxShadow: '0 4px 6px -1px rgba(0,0,0,0.15), 0 2px 4px -1px rgba(0,0,0,0.1)',
+											transition: 'all 0.2s',
+											display: 'flex',
+											alignItems: 'center',
+											gap: '8px'
+										}}
+									>
+										 Exportar Documentos
+									</button>
+								</div>
+							</div>
+
+							<hr style={styles.divider}/>
+
+							<h3 style={styles.sectionTitle}>
+								{esProveedor ? 'Mis Documentos' : 'Documentos del Proveedor'}
+							</h3>
+
+							<div style={styles.tabsRow}>
+
+								{grupos.map(g => (
+									<button
+										key={g.codigo}
+										style={grupoSeleccionado === g.codigo_valor ? styles.btnGhostActive : styles.btnGhost}
+										onClick={async ()=>{setGrupoSeleccionado(g.codigo_valor);
+																		setTextoGrupo(g.texto_boton);
+																		await cargarDocumentos(proveedorSeleccionado.proveedor_id,g.codigo_valor);}}>
+										{g.descripcion}
+									</button>
+								))}
+
+							</div>
+							
+							<div style={styles.infoGrupo}>
+								{textoGrupo}
+							</div>
+
+							{/* Botón Agregar: solo para ADMIN y PROVEEDOR */}
+							<div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+								{puedeEscribir && (
+									<button
+										style={styles.btnPrimary}
+										onClick={() => {
+											setDocumentoSeleccionado(null);
+											setModoDocumento('NUEVO');
+											setModalDocumentoVisible(true);
+										}}
+									>
+										Agregar Documento
+									</button>
+								)}
+							</div>
+
+							<div className="table-scroll">
 							<table style={styles.table}>
+
 								<thead>
 									<tr>
-										<th style={styles.th}>Tipo Documento</th>
 										<th style={styles.th}>Alcance</th>
+										<th style={styles.th}>Tipo Documento</th>											
 										<th style={styles.th}>Fecha Vigencia</th>
 										<th style={styles.th}>Estado</th>
 										<th style={styles.th}>Acciones</th>
 									</tr>
 								</thead>
+
 								<tbody>
-									{documentos.length === 0 ? (
+
+									{documentos.length === 0 && (
 										<tr>
-											<td colSpan={5} style={{ ...styles.td, textAlign: 'center', color: colors.textMuted, padding: '24px' }}>
-												No se encontraron documentos registrados en este grupo.
+											<td colSpan={5} style={{...styles.td, textAlign:'center', color: colors.textMuted}}>
+												No hay documentos registrados en este grupo.
 											</td>
 										</tr>
-									) : documentos.map(item => (
+									)}
+
+									{documentos.map(item => (
+
 										<tr key={item.documento_id}>
-											<td style={styles.td}>
-												{item.descripcion_tipo_documento || item.tipo_documento || item.tipo_documento_id}
-											</td>
+										
 											<td style={styles.td}>{item.descripcion_alcance}</td>
+
 											<td style={styles.td}>
-												{new Date(item.fecha_vigencia).toLocaleDateString('es-PE')}
+												{
+													item.descripcion_tipo_documento ||
+													item.tipo_documento ||
+													(item.tipo_documento_id === '01' ? 'Carta de Presentación' : item.tipo_documento_id === '02' ? 'Otros' : item.tipo_documento_id)
+												}
 											</td>
+
+											<td style={styles.td}>
+												{formatearFechaLocal(item.fecha_vigencia)}
+											</td>
+
 											<td style={styles.td}>
 												<span style={styles.badge(item.estado_documento === 'V')}>
 													{item.estado_documento === 'V' ? 'VIGENTE' : 'VENCIDO'}
 												</span>
 											</td>
+
 											<td style={styles.td}>
 												<div style={styles.rowActions}>
+
+													{/* Botón VER: disponible para todos los roles */}
 													<button
 														style={styles.linkBtn}
 														onClick={() => {
@@ -469,56 +741,55 @@ export default function DocumentsPage() {
 														Ver
 													</button>
 
-													{/* REGLA: Si es CONSULTOR, el botón de editar desaparece. Si es otro rol restringido, se muestra con candado */}
-													{!esConsultor && (
-														puedeEditarGubernamental ? (
-															<button
-																style={styles.linkBtnAmber}
-																onClick={() => {
-																	setDocumentoSeleccionado(item);
-																	setModoDocumento('EDITAR');
-																	setModalDocumentoVisible(true);
-																}}
-															>
-																Editar
-															</button>
-														) : (
-															<button
-																style={styles.linkBtnDisabled}
-																onClick={() => alert("La edición de expedientes guardados se encuentra BLOQUEADA. Solicite la habilitación al Administrador.")}
-															>
-																<Lock size={13} />
-																Editar
-															</button>
-														)
+													{/* Botón EDITAR: solo para ADMIN y PROVEEDOR */}
+													{puedeEscribir && (
+														<button
+															style={styles.linkBtnAmber}
+															onClick={() => {
+																setDocumentoSeleccionado(item);
+																setModoDocumento('EDITAR');
+																setModalDocumentoVisible(true);
+															}}
+														>
+															Editar
+														</button>
 													)}
+
 												</div>
 											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-						</div>
-					</>
-				)}
 
-				{modalDocumentoVisible && (
-					<ModalDocumento
-						visible={true}
-						modo={modoDocumento}
-						documento={documentoSeleccionado}
-						proveedorId={proveedorSeleccionado?.proveedor_id}
-						grupoDocumento={grupoSeleccionado}
-						onClose={() => setModalDocumentoVisible(false)}
-						onSuccess={async () => {
-							await cargarDocumentos(
-								proveedorSeleccionado.proveedor_id,
-								grupoSeleccionado
-							);
-						}}
-					/>
-				)}
-			</div>
-		</MainLayout>
-	);
-}
+										</tr>
+
+									))}
+
+								</tbody>
+
+							</table>
+							</div>
+
+						</>
+					}
+
+					{
+						modalDocumentoVisible && (
+							<ModalDocumento
+								visible={true}
+								modo={modoDocumento}
+								documento={documentoSeleccionado}
+								proveedorId={proveedorSeleccionado?.proveedor_id}
+								grupoDocumento={grupoSeleccionado}
+								onClose={() => setModalDocumentoVisible(false)}
+								onSuccess={async () => {
+									await cargarDocumentos(
+										proveedorSeleccionado.proveedor_id,
+										grupoSeleccionado
+									);
+								}}
+							/>
+						)
+					}
+
+				</div>
+			</MainLayout>
+		);
+	}

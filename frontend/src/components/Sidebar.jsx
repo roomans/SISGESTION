@@ -12,8 +12,13 @@ import { NavLink } from 'react-router-dom';
 
 export default function Sidebar() {
     // 1. Recuperamos el objeto del usuario de forma segura
-    const usuarioRaw = localStorage.getItem('usuario');
-    const usuarioLogueado = usuarioRaw ? JSON.parse(usuarioRaw) : null;
+    let usuarioLogueado = null;
+    try {
+        const usuarioRaw = localStorage.getItem('usuario');
+        usuarioLogueado = usuarioRaw ? JSON.parse(usuarioRaw) : null;
+    } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+    }
     
     // 2. Evaluamos los roles (Tu servicio de backend mapea r.codigo como 'rol_codigo')
     const esAdmin = usuarioLogueado?.rol_codigo === 'ADMIN';
@@ -52,7 +57,7 @@ export default function Sidebar() {
         >
             <h1 style={{ marginBottom: '30px', fontSize: '24px', fontWeight: 'bold' }}>SISGESTION</h1>
 
-            {/* ✔ Visible para todos (Admin y Proveedor) */}
+            {/* ✔ Visible para todos (Admin, Proveedor, Consultor) */}
             <NavLink to="/dashboard" style={menuStyle}>
                 <LayoutDashboard size={20}/>
                 Dashboard
@@ -66,13 +71,13 @@ export default function Sidebar() {
                 </NavLink>
             )}
 
-            {/* ✔ Visible para todos (Admin y Proveedor) */}
+            {/* ✔ Visible para todos */}
             <NavLink to="/providers" style={menuStyle}>
                 <Building2 size={20}/>
                 Proveedores
             </NavLink>
 
-            {/* ✔ Visible para todos (Admin y Proveedor) */}
+            {/* ✔ Visible para todos */}
             <NavLink to="/documents" style={menuStyle}>
                 <FileText size={20}/>
                 Documentos
