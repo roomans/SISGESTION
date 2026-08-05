@@ -932,7 +932,7 @@ export default function ProvidersPage() {
                                 {errors.ciiu && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.ciiu}</span>}
                             </div>
                             <div>
-                                <label style={styles.labelForm}>Nro de Trabajadores *</label>
+                                <label style={styles.labelForm}>Nro. de Trabajadores *</label>
                                 <select 
                                     required 
                                     style={{ ...styles.inputForm, marginBottom: errors.nro_trabajadores ? '5px' : '0' }} 
