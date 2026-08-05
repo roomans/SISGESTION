@@ -276,6 +276,7 @@ export default function ProvidersPage() {
         ubigeo: '',
         direccion: '',
         ciiu: '',
+        nro_trabajadores: '',
         calificacion: 'R',
         status: 'A'
     });
@@ -486,6 +487,9 @@ export default function ProvidersPage() {
         }
         if (!form.ciiu) {
             newErrors.ciiu = 'La actividad económica (CIIU) es obligatoria.';
+        }
+        if (!form.nro_trabajadores) {
+            newErrors.nro_trabajadores = 'El número de personas es obligatorio.';
         }
 
         setErrors(newErrors);
@@ -902,29 +906,51 @@ export default function ProvidersPage() {
                         </div>
 
                         {/* --- GRUPO 6: ACTIVIDAD ECONÓMICA --- */}
-                        <div style={{ marginBottom: '25px' }}>
-                            <label style={styles.labelForm}>Actividad Económica (CIIU) *</label>
-                            <select 
-                                required 
-                                style={{ ...styles.inputForm, marginBottom: errors.ciiu ? '5px' : '0' }} 
-                                value={form.ciiu} 
-                                onChange={e => {
-                                    setForm({ ...form, ciiu: e.target.value });
-                                    setErrors(prev => ({ ...prev, ciiu: null }));
-                                }}
-                            >
-                                <option value="">Seleccione Actividad</option>
-                                {ciius.map((c, index) => {
-                                    const obj = Object.keys(c).reduce((acc, key) => {
-                                        acc[key.toLowerCase()] = c[key];
-                                        return acc;
-                                    }, {});
-                                    const code = obj.codigo_valor || obj.ciiu || obj.id_ciiu || obj.nro_ciiu || obj.code || obj.codigo || obj.id_catalogo;
-                                    const label = obj.label || obj.descripcion || obj.nombre || obj.actividad || obj.descripcion_ciiu;
-                                    return <option key={index} value={code}>{code} - {label}</option>;
-                                })}
-                            </select>
-                            {errors.ciiu && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.ciiu}</span>}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px' }}>
+                            <div>
+                                <label style={styles.labelForm}>Actividad Económica (CIIU) *</label>
+                                <select 
+                                    required 
+                                    style={{ ...styles.inputForm, marginBottom: errors.ciiu ? '5px' : '0' }} 
+                                    value={form.ciiu} 
+                                    onChange={e => {
+                                        setForm({ ...form, ciiu: e.target.value });
+                                        setErrors(prev => ({ ...prev, ciiu: null }));
+                                    }}
+                                >
+                                    <option value="">Seleccione Actividad</option>
+                                    {ciius.map((c, index) => {
+                                        const obj = Object.keys(c).reduce((acc, key) => {
+                                            acc[key.toLowerCase()] = c[key];
+                                            return acc;
+                                        }, {});
+                                        const code = obj.codigo_valor || obj.ciiu || obj.id_ciiu || obj.nro_ciiu || obj.code || obj.codigo || obj.id_catalogo;
+                                        const label = obj.label || obj.descripcion || obj.nombre || obj.actividad || obj.descripcion_ciiu;
+                                        return <option key={index} value={code}>{code} - {label}</option>;
+                                    })}
+                                </select>
+                                {errors.ciiu && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.ciiu}</span>}
+                            </div>
+                            <div>
+                                <label style={styles.labelForm}>Nro de Trabajadores *</label>
+                                <select 
+                                    required 
+                                    style={{ ...styles.inputForm, marginBottom: errors.nro_trabajadores ? '5px' : '0' }} 
+                                    value={form.nro_trabajadores} 
+                                    onChange={e => {
+                                        setForm({ ...form, nro_trabajadores: e.target.value });
+                                        setErrors(prev => ({ ...prev, nro_trabajadores: null }));
+                                    }}
+                                >
+                                    <option value="">Seleccione</option>
+                                    {nroTrabajadoresList.map((n, index) => {
+                                        const code = n.codigo_valor || n.codigo;
+                                        const label = n.descripcion || n.label;
+                                        return <option key={index} value={code}>{code} - {label}</option>;
+                                    })}
+                                </select>
+                                {errors.nro_trabajadores && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.nro_trabajadores}</span>}
+                            </div>
                         </div>
 
                         <button type="submit" style={{ ...styles.btnPrimary, width: '100%', padding: '12px' }}>
@@ -1058,11 +1084,17 @@ export default function ProvidersPage() {
                         </div>
 
                         {/* --- GRUPO 6: ACTIVIDAD ECONÓMICA --- */}
-                        <div style={{ marginBottom: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>ACTIVIDAD ECONÓMICA (CIIU)</label>
                                 <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
                                     {proveedores[0]?.ciiu ? `${proveedores[0].ciiu} - ${proveedores[0]?.descripcion_ciiu || ''}` : 'No especificada'}
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>NRO DE PERSONAS</label>
+                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
+                                    {proveedores[0]?.descripcion_nro_trabajadores || proveedores[0]?.nro_trabajadores || 'No especificado'}
                                 </div>
                             </div>
                         </div>
