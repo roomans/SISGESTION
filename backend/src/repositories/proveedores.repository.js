@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+﻿const pool = require('../config/db');
 
 //EROMAN 07062026
 const SQL_PROVEEDOR = `
@@ -32,14 +32,14 @@ const SQL_ESTADO_DOCUMENTOS = `
 CASE
     WHEN NOT EXISTS (
         SELECT 1
-        FROM "SISGES"."MOV_DOCUMENTOS" MD
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" MD
         WHERE MD.proveedor_id = MPRO.proveedor_id
           AND MD.status = 'A'
     )
     THEN NULL
     WHEN EXISTS (
         SELECT 1
-        FROM "SISGES"."MOV_DOCUMENTOS" MD
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" MD
         WHERE MD.proveedor_id = MPRO.proveedor_id
           AND MD.estado_documento = 'C'
           AND MD.status = 'A'
@@ -188,19 +188,19 @@ const listar = async (campo = 'ALL', valor = '') => {
 
             ${SQL_ESTADO} AS estado
 
-        FROM "SISGES"."MAE_PROVEEDOR" MPRO
+        FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR" MPRO
 
-        LEFT JOIN "SISGES"."MAE_LISTA_VALORES" MLV_REG
+        LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" MLV_REG
                ON MLV_REG.codigo_valor::varchar = MPRO.regimen_tributario::varchar
               AND MLV_REG.cod_grupo='0100'
               AND MLV_REG.tipo_grupo='TIPO_REGIMEN'
 
-        LEFT JOIN "SISGES"."MAE_LISTA_VALORES" MLV
+        LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" MLV
                ON MLV.codigo_valor = MPRO.tipo_documento
               AND MLV.cod_grupo='0001'
               AND MLV.tipo_grupo='TIPO_DOC_SUNAT'
 
-        LEFT JOIN "SISGES"."MAE_LISTA_VALORES" MLV_CIUU
+        LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" MLV_CIUU
                ON MLV_CIUU.codigo_valor = MPRO.ciiu
               AND MLV_CIUU.cod_grupo='0002'
               AND MLV_CIUU.tipo_grupo='CODIGO_CIIU_SUNAT'
@@ -228,12 +228,12 @@ const obtenerPorId = async (proveedorId) => {
 		tipo_doc.descripcion AS descripcion_tipo_documento,
 		status_prov.descripcion AS descripcion_status_prov,
         nro_trab.descripcion AS descripcion_nro_trabajadores
-FROM 	"SISGES"."MAE_PROVEEDOR" p
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" reg_trib ON reg_trib.cod_grupo = '0100' AND reg_trib.tipo_grupo = 'TIPO_REGIMEN' AND reg_trib.codigo_valor::varchar = p.regimen_tributario::varchar
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" ciiu ON ciiu.cod_grupo = '0002' AND ciiu.tipo_grupo = 'CODIGO_CIIU_SUNAT' AND ciiu.codigo_valor::varchar =  p.ciiu::varchar
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" tipo_doc ON tipo_doc.cod_grupo = '0001' AND tipo_doc.tipo_grupo = 'TIPO_DOC_SUNAT' AND tipo_doc.codigo_valor::varchar =  p.tipo_documento::varchar
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" status_prov ON status_prov.cod_grupo = '0000' AND status_prov.tipo_grupo = 'STATUS_PROVEEDOR' AND status_prov.codigo_valor::varchar =  p.status::varchar
-LEFT JOIN "SISGES"."MAE_LISTA_VALORES" nro_trab ON nro_trab.cod_grupo = '0101' AND nro_trab.tipo_grupo = 'TIPO_NRO_TRABAJADORES' AND nro_trab.codigo_valor::varchar = p.nro_trabajadores::varchar
+FROM 	"SISGES_PRUEBAS"."MAE_PROVEEDOR" p
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" reg_trib ON reg_trib.cod_grupo = '0100' AND reg_trib.tipo_grupo = 'TIPO_REGIMEN' AND reg_trib.codigo_valor::varchar = p.regimen_tributario::varchar
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" ciiu ON ciiu.cod_grupo = '0002' AND ciiu.tipo_grupo = 'CODIGO_CIIU_SUNAT' AND ciiu.codigo_valor::varchar =  p.ciiu::varchar
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" tipo_doc ON tipo_doc.cod_grupo = '0001' AND tipo_doc.tipo_grupo = 'TIPO_DOC_SUNAT' AND tipo_doc.codigo_valor::varchar =  p.tipo_documento::varchar
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" status_prov ON status_prov.cod_grupo = '0000' AND status_prov.tipo_grupo = 'STATUS_PROVEEDOR' AND status_prov.codigo_valor::varchar =  p.status::varchar
+LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" nro_trab ON nro_trab.cod_grupo = '0101' AND nro_trab.tipo_grupo = 'TIPO_NRO_TRABAJADORES' AND nro_trab.codigo_valor::varchar = p.nro_trabajadores::varchar
 WHERE p.proveedor_id = $1
     `;
 
@@ -253,7 +253,7 @@ const existeProveedor = async (
 
     const sql = `
         SELECT proveedor_id
-        FROM "SISGES"."MAE_PROVEEDOR"
+        FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR"
         WHERE tipo_documento = $1
         AND nro_documento = $2
     `;
@@ -270,7 +270,7 @@ const existeProveedor = async (
 const crear = async (proveedor) => {
 
     const sql = `
-        INSERT INTO "SISGES"."MAE_PROVEEDOR"
+        INSERT INTO "SISGES_PRUEBAS"."MAE_PROVEEDOR"
         (
             proveedor_id,
             regimen_tributario,
@@ -298,7 +298,7 @@ const crear = async (proveedor) => {
         )
         VALUES
         (
-            nextval('"SISGES".seq_proveedor_id'),
+            nextval('"SISGES_PRUEBAS".seq_proveedor_id'),
             $1,$2,$3,$4,$5,$6,$7,$8,$9,
             $10,$11,$12,$13,$14,$15,$16,
             $17,$18,$19,
@@ -340,7 +340,7 @@ const crear = async (proveedor) => {
     // 2. Vinculación automática en la tabla de seguridad usando el ID entero obtenido
     if (proveedor.usuario_id) {
         const sqlSeguridad = `
-            UPDATE "SISGES"."SEG_USUARIO"
+            UPDATE "SISGES_PRUEBAS"."SEG_USUARIO"
             SET proveedor_id = $1,
                 primer_ingreso = 'N'
             WHERE usuario_id = $2
@@ -357,7 +357,7 @@ const actualizar = async (
 ) => {
 
     const sql = `
-        UPDATE "SISGES"."MAE_PROVEEDOR"
+        UPDATE "SISGES_PRUEBAS"."MAE_PROVEEDOR"
         SET
             regimen_tributario=$1,
             tipo_documento=$2,
@@ -419,7 +419,7 @@ const obtenerPorUsuario = async (
 
     const sql = `
         SELECT *
-        FROM "SISGES"."MAE_PROVEEDOR"
+        FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR"
         WHERE proveedor_id = $1
     `;
 
@@ -449,24 +449,24 @@ const buscarProveedor = async (
                 tipo_doc.descripcion AS descripcion_tipo_documento,
                 status_prov.descripcion AS descripcion_status_prov,
                 nro_trab.descripcion AS descripcion_nro_trabajadores
-            FROM "SISGES"."MAE_PROVEEDOR" p
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" c
+            FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR" p
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" c
                 ON c.cod_grupo = '0002'
                AND c.tipo_grupo = 'CODIGO_CIIU_SUNAT'
                AND c.codigo_valor::varchar = p.ciiu::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" reg_trib 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" reg_trib 
                 ON reg_trib.cod_grupo = '0100' 
                AND reg_trib.tipo_grupo = 'TIPO_REGIMEN' 
                AND reg_trib.codigo_valor::varchar = p.regimen_tributario::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" tipo_doc 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" tipo_doc 
                 ON tipo_doc.cod_grupo = '0001' 
                AND tipo_doc.tipo_grupo = 'TIPO_DOC_SUNAT' 
                AND tipo_doc.codigo_valor::varchar = p.tipo_documento::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" status_prov 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" status_prov 
                 ON status_prov.cod_grupo = '0000' 
                AND status_prov.tipo_grupo = 'STATUS_PROVEEDOR' 
                AND status_prov.codigo_valor::varchar = p.status::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" nro_trab 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" nro_trab 
                 ON nro_trab.cod_grupo = '0101' 
                AND nro_trab.tipo_grupo = 'TIPO_NRO_TRABAJADORES' 
                AND nro_trab.codigo_valor::varchar = p.nro_trabajadores::varchar
@@ -484,24 +484,24 @@ const buscarProveedor = async (
                 tipo_doc.descripcion AS descripcion_tipo_documento,
                 status_prov.descripcion AS descripcion_status_prov,
                 nro_trab.descripcion AS descripcion_nro_trabajadores
-            FROM "SISGES"."MAE_PROVEEDOR" p
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" c
+            FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR" p
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" c
                 ON c.cod_grupo = '0002'
                AND c.tipo_grupo = 'CODIGO_CIIU_SUNAT'
                AND c.codigo_valor::varchar = p.ciiu::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" reg_trib 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" reg_trib 
                 ON reg_trib.cod_grupo = '0100' 
                AND reg_trib.tipo_grupo = 'TIPO_REGIMEN' 
                AND reg_trib.codigo_valor::varchar = p.regimen_tributario::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" tipo_doc 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" tipo_doc 
                 ON tipo_doc.cod_grupo = '0001' 
                AND tipo_doc.tipo_grupo = 'TIPO_DOC_SUNAT' 
                AND tipo_doc.codigo_valor::varchar = p.tipo_documento::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" status_prov 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" status_prov 
                 ON status_prov.cod_grupo = '0000' 
                AND status_prov.tipo_grupo = 'STATUS_PROVEEDOR' 
                AND status_prov.codigo_valor::varchar = p.status::varchar
-            LEFT JOIN "SISGES"."MAE_LISTA_VALORES" nro_trab 
+            LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" nro_trab 
                 ON nro_trab.cod_grupo = '0101' 
                AND nro_trab.tipo_grupo = 'TIPO_NRO_TRABAJADORES' 
                AND nro_trab.codigo_valor::varchar = p.nro_trabajadores::varchar

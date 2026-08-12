@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+﻿const pool = require('../config/db');
 
 const obtenerResumen = async () => {
 
@@ -6,26 +6,26 @@ const obtenerResumen = async () => {
         SELECT
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MAE_PROVEEDOR"
+                FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR"
                 WHERE status = 'A'
             ) total_proveedores,
 
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MOV_DOCUMENTOS"
+                FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
                 WHERE status = 'A'
             ) total_documentos,
 
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MOV_DOCUMENTOS"
+                FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
                 WHERE fecha_vigencia >= CURRENT_DATE
                 AND status = 'A'
             ) documentos_vigentes,
 
             (
                 SELECT COUNT(*)
-                FROM "SISGES"."MOV_DOCUMENTOS"
+                FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
                 WHERE fecha_vigencia < CURRENT_DATE
                 AND status = 'A'
             ) documentos_vencidos
@@ -45,8 +45,8 @@ const obtenerDocumentosPorGrupo = async () => {
     d.grupo_documentos,
     lv.descripcion,
     COUNT(*) cantidad
-FROM "SISGES"."MOV_DOCUMENTOS" d
-JOIN "SISGES"."MAE_LISTA_VALORES" lv
+FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
     ON lv.codigo_valor = d.grupo_documentos
    AND lv.cod_grupo = '0005'
    AND lv.tipo_grupo = 'GRUPO_DOCUMENTO'
@@ -70,8 +70,8 @@ const obtenerDocumentosPorEstado = async () => {
             d.estado_documento,
             lv.descripcion,
             COUNT(*) cantidad
-        FROM "SISGES"."MOV_DOCUMENTOS" d
-        INNER JOIN "SISGES"."MAE_LISTA_VALORES" lv
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+        INNER JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
             ON lv.codigo_valor = d.estado_documento
            AND lv.cod_grupo = '0000'
            AND lv.tipo_grupo = 'STATUS_DOCUMENTO'
@@ -109,8 +109,8 @@ const obtenerProveedoresVencidos = async () => {
 
             COUNT(*) documentos_vencidos
 
-        FROM "SISGES"."MOV_DOCUMENTOS" d
-        INNER JOIN "SISGES"."MAE_PROVEEDOR" p
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+        INNER JOIN "SISGES_PRUEBAS"."MAE_PROVEEDOR" p
             ON p.proveedor_id = d.proveedor_id
 
         WHERE d.estado_documento = 'C'
@@ -167,9 +167,9 @@ const obtenerDocumentosProximosVencer = async () => {
                 d.fecha_vigencia - CURRENT_DATE
             ) dias_restantes
 
-        FROM "SISGES"."MOV_DOCUMENTOS" d
+        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
 
-        INNER JOIN "SISGES"."MAE_PROVEEDOR" p
+        INNER JOIN "SISGES_PRUEBAS"."MAE_PROVEEDOR" p
             ON p.proveedor_id = d.proveedor_id
 
         WHERE d.status = 'A'
@@ -204,7 +204,7 @@ WITH proveedor_info AS (
         1 as exigible_calidad,
         1 as exigible_patrimonial,
         1 as exigible_etica
-    FROM "SISGES"."MAE_PROVEEDOR"
+    FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR"
     WHERE proveedor_id = $1
 ),
 doc_counts AS (
@@ -215,7 +215,7 @@ doc_counts AS (
         COUNT(DISTINCT CASE WHEN d.alcance = 'GPA' THEN d.tipo_documento_id END) as docs_patrimonial,
         COUNT(DISTINCT CASE WHEN d.alcance = 'GTR' THEN d.tipo_documento_id END) as docs_etica
     FROM proveedor_info p
-    LEFT JOIN "SISGES"."MOV_DOCUMENTOS" d 
+    LEFT JOIN "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d 
       ON p.proveedor_id = d.proveedor_id AND d.status = 'A'
     GROUP BY p.proveedor_id
 )
@@ -264,7 +264,7 @@ WITH proveedor_info AS (
             WHEN regimen_tributario = 'RM' THEN 11
             ELSE 16
         END as total_exigibles
-    FROM "SISGES"."MAE_PROVEEDOR"
+    FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR"
     WHERE proveedor_id = $1
 ),
 doc_counts AS (
@@ -291,7 +291,7 @@ doc_counts AS (
         COUNT(d.documento_id) FILTER (WHERE d.fecha_vigencia >= CURRENT_DATE AND d.fecha_vigencia <= CURRENT_DATE + INTERVAL '7 days') AS por_vencer_abs,
         COUNT(d.documento_id) FILTER (WHERE d.fecha_vigencia >= CURRENT_DATE) AS vigentes_abs
     FROM proveedor_info p
-    LEFT JOIN "SISGES"."MOV_DOCUMENTOS" d 
+    LEFT JOIN "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d 
         ON p.proveedor_id = d.proveedor_id AND d.status = 'A'
     GROUP BY p.proveedor_id, p.total_exigibles
 ),
@@ -341,8 +341,8 @@ WITH doc_vigentes AS (
         prov.proveedor_id,
         prov.regimen_tributario,
         COUNT(DISTINCT docu.tipo_documento_id) AS cantidad_documentos_vigentes
-    FROM "SISGES"."MAE_PROVEEDOR" prov
-    LEFT JOIN "SISGES"."MOV_DOCUMENTOS" docu 
+    FROM "SISGES_PRUEBAS"."MAE_PROVEEDOR" prov
+    LEFT JOIN "SISGES_PRUEBAS"."MOV_DOCUMENTOS" docu 
         ON prov.proveedor_id = docu.proveedor_id 
         AND docu.status = 'A'
         AND docu.fecha_vigencia >= CURRENT_DATE

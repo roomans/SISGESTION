@@ -1,11 +1,11 @@
-const pool = require('../config/db');
+﻿const pool = require('../config/db');
 
 const obtenerDepartamentos = async () => {
 
     const sql = `
         SELECT DISTINCT
                departamento
-        FROM "SISGES"."MAE_UBIGEO"
+        FROM "SISGES_PRUEBAS"."MAE_UBIGEO"
         ORDER BY departamento
     `;
 
@@ -21,7 +21,7 @@ const obtenerProvincias = async (
     const sql = `
         SELECT DISTINCT
                provincia
-        FROM "SISGES"."MAE_UBIGEO"
+        FROM "SISGES_PRUEBAS"."MAE_UBIGEO"
         WHERE departamento = $1
         ORDER BY provincia
     `;
@@ -44,7 +44,7 @@ const obtenerDistritos = async (
         SELECT
             ubigeo_inei,
             distrito
-        FROM "SISGES"."MAE_UBIGEO"
+        FROM "SISGES_PRUEBAS"."MAE_UBIGEO"
         WHERE departamento = $1
           AND provincia = $2
         ORDER BY distrito

@@ -1,3 +1,3 @@
-module.exports = {
-  SCHEMA: 'SISGES'
+﻿module.exports = {
+  SCHEMA: 'SISGES_PRUEBAS'
 };
