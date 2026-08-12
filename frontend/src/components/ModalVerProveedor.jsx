@@ -56,18 +56,22 @@ export default function ModalVerProveedor({
                             <td><b>Tipo Empresa</b></td>
                             <td>
                                 {
-                                    proveedor.descripcion_regimen_tributario || proveedor.regimen_tributario
-                                    ? (proveedor.descripcion_regimen_tributario
-                                        ? `${proveedor.regimen_tributario || proveedor.codigo_regimen_tributario ? (proveedor.regimen_tributario || proveedor.codigo_regimen_tributario) + ' - ' : ''}${proveedor.descripcion_regimen_tributario}`
-                                        : proveedor.regimen_tributario)
-                                    : ''
+                                    proveedor.codigo_regimen_tributario || proveedor.regimen_tributario
+                                    ? `${proveedor.codigo_regimen_tributario || proveedor.regimen_tributario} - ${proveedor.descripcion_regimen_tributario || ''}`
+                                    : (proveedor.descripcion_regimen_tributario || proveedor.regimen_tributario || '')
                                 }
                             </td>
                         </tr>
 
                         <tr>
                             <td><b>Nro. Trabajadores</b></td>
-                            <td>{proveedor.descripcion_nro_trabajadores || proveedor.nro_trabajadores}</td>
+                            <td>
+                                {
+                                    proveedor.nro_trabajadores
+                                    ? `${proveedor.nro_trabajadores} - ${proveedor.descripcion_nro_trabajadores || ''}`
+                                    : (proveedor.descripcion_nro_trabajadores || proveedor.nro_trabajadores || '')
+                                }
+                            </td>
                         </tr>
 
                         <tr>

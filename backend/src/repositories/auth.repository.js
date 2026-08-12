@@ -11,8 +11,8 @@ const findByUsername = async (username) => {
             u.primer_ingreso,
             u.estado_usuario,
             r.codigo AS rol
-        FROM "SISGES_PRUEBAS"."SEG_USUARIO" u
-        JOIN "SISGES_PRUEBAS"."SEG_ROL" r
+        FROM "SISGES"."SEG_USUARIO" u
+        JOIN "SISGES"."SEG_ROL" r
              ON r.rol_id = u.rol_id
         WHERE u.username = $1
           AND u.estado_usuario = 'A'

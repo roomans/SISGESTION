@@ -6,7 +6,7 @@ const obtenerGrupos = async () => {
         SELECT DISTINCT
                cod_grupo,
                tipo_grupo
-        FROM "SISGES_PRUEBAS"."MAE_LISTA_VALORES"
+        FROM "SISGES"."MAE_LISTA_VALORES"
         ORDER BY
                cod_grupo,
                tipo_grupo
@@ -29,7 +29,7 @@ const obtenerValores = async (
             descripcion,
             "TEXTO_BOTON"||chr(10)||"TEXTO_BOTON_2" as texto_boton,
             orden
-        FROM "SISGES_PRUEBAS"."MAE_LISTA_VALORES"
+        FROM "SISGES"."MAE_LISTA_VALORES"
         WHERE cod_grupo = $1
           AND tipo_grupo = $2
         ORDER BY orden

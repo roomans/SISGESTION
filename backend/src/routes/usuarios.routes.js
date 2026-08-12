@@ -37,9 +37,9 @@ router.get('/usuarios', async (req, res) => {
         r.nombre  AS rol_nombre,
         r.codigo  AS rol_codigo,
         p.razon_social AS proveedor_nombre
-      FROM "SISGES_PRUEBAS"."SEG_USUARIO" u
-      LEFT JOIN "SISGES_PRUEBAS"."SEG_ROL" r ON u.rol_id = r.rol_id
-      LEFT JOIN "SISGES_PRUEBAS"."MAE_PROVEEDOR" p ON u.proveedor_id = p.proveedor_id
+      FROM "SISGES"."SEG_USUARIO" u
+      LEFT JOIN "SISGES"."SEG_ROL" r ON u.rol_id = r.rol_id
+      LEFT JOIN "SISGES"."MAE_PROVEEDOR" p ON u.proveedor_id = p.proveedor_id
       WHERE 1=1
         ${whereEstado}
       ORDER BY
@@ -75,9 +75,9 @@ router.get('/usuarios/:id', async (req, res) => {
         r.nombre AS rol_nombre,
         r.codigo AS rol_codigo,
         p.razon_social AS proveedor_nombre
-      FROM "SISGES_PRUEBAS"."SEG_USUARIO" u
-      LEFT JOIN "SISGES_PRUEBAS"."SEG_ROL" r ON u.rol_id = r.rol_id
-      LEFT JOIN "SISGES_PRUEBAS"."MAE_PROVEEDOR" p ON u.proveedor_id = p.proveedor_id
+      FROM "SISGES"."SEG_USUARIO" u
+      LEFT JOIN "SISGES"."SEG_ROL" r ON u.rol_id = r.rol_id
+      LEFT JOIN "SISGES"."MAE_PROVEEDOR" p ON u.proveedor_id = p.proveedor_id
       WHERE u.usuario_id = $1;
     `;
 
@@ -112,7 +112,7 @@ router.post('/usuarios/registro', async (req, res) => {
     // rol_id = 2 (PROVEEDOR) por defecto para cumplir el NOT NULL de la BD.
     // El administrador reasignará el rol real al momento de aprobar.
     const query = `
-      INSERT INTO "SISGES_PRUEBAS"."SEG_USUARIO"
+      INSERT INTO "SISGES"."SEG_USUARIO"
         (username, correo, password_hash, rol_id, estado_usuario, primer_ingreso, estado)
       VALUES
         ($1, $2, $3, 2, 'P', 'N', 'I')
@@ -151,7 +151,7 @@ router.post('/usuarios', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     const query = `
-      INSERT INTO "SISGES_PRUEBAS"."SEG_USUARIO"
+      INSERT INTO "SISGES"."SEG_USUARIO"
         (username, correo, password_hash, rol_id, estado, estado_usuario, primer_ingreso)
       VALUES
         ($1, $2, $3, $4, 'A', 'A', $5)
@@ -199,7 +199,7 @@ router.put('/usuarios/:id/aprobar', async (req, res) => {
 
     // Obtener código del rol para ajustar primer_ingreso
     const rolResult = await pool.query(
-      `SELECT codigo FROM "SISGES_PRUEBAS"."SEG_ROL" WHERE rol_id = $1`,
+      `SELECT codigo FROM "SISGES"."SEG_ROL" WHERE rol_id = $1`,
       [intRolId]
     );
 
@@ -214,7 +214,7 @@ router.put('/usuarios/:id/aprobar', async (req, res) => {
     const estadoEdicion = (rolCodigo === 'PROVEEDOR' || rolCodigo === 'CONSULTOR') ? 'H' : 'L';
 
     const result = await pool.query(
-      `UPDATE "SISGES_PRUEBAS"."SEG_USUARIO"
+      `UPDATE "SISGES"."SEG_USUARIO"
        SET
          rol_id         = $1,
          estado_usuario = 'A',
@@ -249,7 +249,7 @@ router.put('/usuarios/:id/rechazar', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE "SISGES_PRUEBAS"."SEG_USUARIO"
+      `UPDATE "SISGES"."SEG_USUARIO"
        SET estado_usuario = 'R', update_date = NOW()
        WHERE usuario_id = $1
        RETURNING usuario_id, username, estado_usuario;`,
@@ -296,7 +296,7 @@ router.put('/usuarios/:id', async (req, res) => {
 
     // Buscar proveedor_id actual del usuario
     const buscaProveedorQuery = `
-      SELECT proveedor_id FROM "SISGES_PRUEBAS"."SEG_USUARIO" WHERE usuario_id = $1
+      SELECT proveedor_id FROM "SISGES"."SEG_USUARIO" WHERE usuario_id = $1
     `;
     const userCheck = await client.query(buscaProveedorQuery, [intUsuarioId]);
     const miProveedorId = userCheck.rows[0]?.proveedor_id;
@@ -304,7 +304,7 @@ router.put('/usuarios/:id', async (req, res) => {
     // Si tiene proveedor_id, sincronizar cod_estado_edicion en MAE_PROVEEDOR
     if (miProveedorId) {
       const updateProveedorSql = `
-        UPDATE "SISGES_PRUEBAS"."MAE_PROVEEDOR"
+        UPDATE "SISGES"."MAE_PROVEEDOR"
         SET cod_estado_edicion = $1
         WHERE proveedor_id = $2
       `;
@@ -320,7 +320,7 @@ router.put('/usuarios/:id', async (req, res) => {
       const newPasswordHash = await bcrypt.hash(password, salt);
 
       queryUsuario = `
-        UPDATE "SISGES_PRUEBAS"."SEG_USUARIO"
+        UPDATE "SISGES"."SEG_USUARIO"
         SET
           username       = $1,
           correo         = $2,
@@ -335,7 +335,7 @@ router.put('/usuarios/:id', async (req, res) => {
       valuesUsuario = [username, correo, newPasswordHash, intRolId, primer_ingreso || 'L', intUsuarioId];
     } else {
       queryUsuario = `
-        UPDATE "SISGES_PRUEBAS"."SEG_USUARIO"
+        UPDATE "SISGES"."SEG_USUARIO"
         SET
           username       = $1,
           correo         = $2,

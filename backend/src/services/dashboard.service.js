@@ -40,11 +40,25 @@ async () => {
         .obtenerDocumentosProximosVencer();
 
 };
+const obtenerCumplimientoPorGestion = async (proveedorId) => {
+    return await repository.obtenerCumplimientoPorGestion(proveedorId);
+};
+
+const obtenerEstadoExpediente = async (proveedorId) => {
+    return await repository.obtenerEstadoExpediente(proveedorId);
+};
+
+const obtenerCalificacionProveedor = async (proveedorId) => {
+    return await repository.obtenerCalificacionProveedor(proveedorId);
+};
 
 module.exports = {
     obtenerResumen,
     obtenerDocumentosPorGrupo,
     obtenerDocumentosPorEstado,
     obtenerProveedoresVencidos,
-    obtenerDocumentosProximosVencer
+    obtenerDocumentosProximosVencer,
+    obtenerCumplimientoPorGestion,
+    obtenerEstadoExpediente,
+    obtenerCalificacionProveedor
 };

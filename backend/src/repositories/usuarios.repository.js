@@ -1,6 +1,6 @@
 const actualizar = async (usuario_id, datos) => {
     const sql = `
-        UPDATE "SISGES_PRUEBAS"."SEG_USUARIO"
+        UPDATE "SISGES"."SEG_USUARIO"
         SET 
             username = $1,
             correo = $2,

@@ -380,10 +380,6 @@ const validarForm = () => {
 
     if (!form.telefono || !form.telefono.trim()) {
         newErrors.telefono = 'El teléfono es obligatorio.';
-    } else if (!soloNumeros.test(form.telefono)) {
-        newErrors.telefono = 'El teléfono debe contener solo números.';
-    } else if (form.telefono.length < 7 || form.telefono.length > 9) {
-        newErrors.telefono = 'El teléfono debe tener entre 7 y 9 dígitos.';
     }
 
     if (!form.departamento) {
@@ -546,7 +542,7 @@ else{
                 <h2>{proveedorEditar ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h2>
                 
                 {/* --- GRUPO 1: IDENTIDAD --- */}
-<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px' }}>
     <div>
         <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Tipo Empresa *</label>
         <select
@@ -561,12 +557,13 @@ else{
             <option value="">Seleccione...</option>
             {regimenesTributarios.map(item => (
                 <option key={item.codigo_valor} value={item.codigo_valor}>
-                    {item.descripcion}
+                    {item.codigo_valor ? `${item.codigo_valor} - ${item.descripcion}` : item.descripcion}
                 </option>
             ))}
         </select>
         {errors.regimen_tributario && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.regimen_tributario}</span>}
     </div>
+
     <div>
         <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Nro. Trabajadores</label>
         <select
@@ -579,7 +576,7 @@ else{
             <option value="">Seleccione...</option>
             {nroTrabajadoresList.map(item => (
                 <option key={item.codigo_valor} value={item.codigo_valor}>
-                    {item.descripcion}
+                    {item.codigo_valor ? `${item.codigo_valor} - ${item.descripcion}` : item.descripcion}
                 </option>
             ))}
         </select>

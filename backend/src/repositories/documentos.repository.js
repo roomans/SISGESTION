@@ -10,7 +10,7 @@ const listarPorProveedor = async (proveedorId) => {
     d.tipo_documento_id,
     d.tipo_documento,
     (	select 	lv.descripcion
-        from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+        from	"SISGES"."MAE_LISTA_VALORES" lv
         where	lv.cod_grupo = '0001'
         and		lv.tipo_grupo = 'TIPO_DOC_' || d.alcance
         and		lv.codigo_valor = d.tipo_documento_id ) AS descripcion_tipo_documento,
@@ -22,12 +22,12 @@ const listarPorProveedor = async (proveedorId) => {
     d.status,
     d.alcance,
     d.observaciones
-FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
+FROM "SISGES"."MOV_DOCUMENTOS" d
 
 WHERE d.proveedor_id = $1
 AND d.status = 'A'
 
-ORDER BY d.fecha_vigencia
+ORDER BY d.alcance ASC, d.tipo_documento_id ASC, d.fecha_vigencia ASC
     `;
 
     const result =
@@ -40,7 +40,7 @@ const obtenerPorId = async (documentoId) => {
 
     const sql = `
         SELECT *
-        FROM "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
+        FROM "SISGES"."MOV_DOCUMENTOS"
         WHERE documento_id = $1
     `;
 
@@ -55,7 +55,7 @@ const crear = async (documento) =>
 		documento.tipo_documento = null;
 
     const sql = `
-        INSERT INTO "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
+        INSERT INTO "SISGES"."MOV_DOCUMENTOS"
         (
             documento_id,
             grupo_documentos,
@@ -75,7 +75,7 @@ const crear = async (documento) =>
         )
         VALUES
         (
-            nextval('"SISGES_PRUEBAS".seq_documento_id'),
+            nextval('"SISGES".seq_documento_id'),
             $1,$2,$3,$4,$5,$6,$7,$8,$9,
             'A',
             $10,$11,
@@ -114,7 +114,7 @@ const actualizar = async (
     
 
     const sql = `
-        UPDATE "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
+        UPDATE "SISGES"."MOV_DOCUMENTOS"
         SET
             tipo_documento_id = $1,
             tipo_documento    = $2,
@@ -159,7 +159,7 @@ const listarPorGrupo = async (
         d.tipo_documento_id,
         d.tipo_documento,
         (	select 	lv.descripcion
-            from	"SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv
+            from	"SISGES"."MAE_LISTA_VALORES" lv
             where	lv.cod_grupo = '0001'
             and		lv.tipo_grupo = 'TIPO_DOC_' || d.alcance
             and		lv.codigo_valor = d.tipo_documento_id ) AS descripcion_tipo_documento,
@@ -173,13 +173,13 @@ const listarPorGrupo = async (
         d.status,
         d.alcance,
         d.observaciones
-FROM	"SISGES_PRUEBAS"."MOV_DOCUMENTOS" d
-LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv_alcance ON lv_alcance.codigo_valor = D.alcance AND lv_alcance.cod_grupo='0099' AND lv_alcance.tipo_grupo='TIPO_GESTION'
-LEFT JOIN "SISGES_PRUEBAS"."MAE_LISTA_VALORES" lv_estado_doc ON lv_estado_doc.codigo_valor = D.estado_documento AND lv_estado_doc.cod_grupo='0000' AND lv_estado_doc.tipo_grupo='STATUS_DOCUMENTO'
+FROM	"SISGES"."MOV_DOCUMENTOS" d
+LEFT JOIN "SISGES"."MAE_LISTA_VALORES" lv_alcance ON lv_alcance.codigo_valor = D.alcance AND lv_alcance.cod_grupo='0099' AND lv_alcance.tipo_grupo='TIPO_GESTION'
+LEFT JOIN "SISGES"."MAE_LISTA_VALORES" lv_estado_doc ON lv_estado_doc.codigo_valor = D.estado_documento AND lv_estado_doc.cod_grupo='0000' AND lv_estado_doc.tipo_grupo='STATUS_DOCUMENTO'
 WHERE 	d.proveedor_id = $1
 AND 	d.grupo_documentos = $2
 AND		d.status = 'A'
-ORDER BY d.fecha_vigencia`;
+ORDER BY d.alcance ASC, d.tipo_documento_id ASC, d.fecha_vigencia ASC`;
 
     const result =
         await pool.query(

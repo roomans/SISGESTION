@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import {buscarProveedor, obtenerProveedorPorId} from '../services/providers.service';
 import {listarPorGrupo} from '../services/documentos.service';
@@ -281,6 +282,13 @@ const obtenerUsuario = () => {
 };
 
 export default function DocumentsPage() {
+		const location = useLocation();
+		const navigate = useNavigate();
+		const searchParams = new URLSearchParams(location.search);
+		const estadoFiltroUrl = searchParams.get('estado');
+
+		const limpiarFiltro = () => navigate('/documents');
+
 		// ── Identidad del usuario logueado ──────────────────────────────────────
 		const usuarioLogueado = obtenerUsuario();
 		const rolCodigo       = usuarioLogueado?.rol_codigo || '';
@@ -342,10 +350,16 @@ export default function DocumentsPage() {
 				return;
 			}
 
-			const data = documentos.map(item => ({
+			const docsOrdenados = [...documentos].sort((a, b) => 
+				String(a.alcance || '').localeCompare(String(b.alcance || '')) ||
+				String(a.tipo_documento_id || '').localeCompare(String(b.tipo_documento_id || ''))
+			);
+
+			const data = docsOrdenados.map(item => ({
 				"Alcance": item.descripcion_alcance || '',
-				"Tipo Documento": item.descripcion_tipo_documento || item.tipo_documento || 
-					(item.tipo_documento_id === '01' ? 'Carta de Presentación' : item.tipo_documento_id === '02' ? 'Otros' : item.tipo_documento_id || ''),
+				"Tipo Documento": item.tipo_documento_id 
+					? `${item.tipo_documento_id} - ${item.descripcion_tipo_documento || item.tipo_documento || (item.tipo_documento_id === '01' ? 'Carta de Presentación' : item.tipo_documento_id === '02' ? 'Otros' : '')}`
+					: (item.descripcion_tipo_documento || item.tipo_documento || ''),
 				"Fecha Vigencia": formatearFechaLocal(item.fecha_vigencia),
 				"Estado": item.estado_documento === 'V' ? 'VIGENTE' : 'VENCIDO'
 			}));
@@ -370,10 +384,13 @@ export default function DocumentsPage() {
 				const resultados = await Promise.all(promesas);
 
 				const excelRows = [];
-				const razonSocialStr = proveedorSeleccionado.razon_social || 
-					`${proveedorSeleccionado.nombre || ''} ${proveedorSeleccionado.apellido_paterno || ''} ${proveedorSeleccionado.apellido_materno || ''}`.trim();
+				const esEmpresa = proveedorSeleccionado.tipo_documento === '06' || proveedorSeleccionado.tipo_documento === 'RUC';
+				const labelNombre = esEmpresa ? 'RAZÓN SOCIAL' : 'NOMBRES Y APELLIDOS';
+				const nombreStr = esEmpresa 
+					? proveedorSeleccionado.razon_social 
+					: `${proveedorSeleccionado.nombre || ''} ${proveedorSeleccionado.apellido_paterno || ''} ${proveedorSeleccionado.apellido_materno || ''}`.trim();
 					
-				excelRows.push({ "Columna": `RAZÓN SOCIAL: ${razonSocialStr}` });
+				excelRows.push({ "Columna": `${labelNombre}: ${nombreStr || ''}` });
 				excelRows.push({ "Columna": `DOCUMENTO: ${proveedorSeleccionado.nro_documento || ''}` });
 				excelRows.push({ "Columna": "" });
 
@@ -389,11 +406,17 @@ export default function DocumentsPage() {
 							"Observaciones": "Observaciones"
 						});
 
-						res.documentos.forEach(doc => {
+						const docsGrupoOrdenados = [...res.documentos].sort((a, b) => 
+							String(a.alcance || '').localeCompare(String(b.alcance || '')) ||
+							String(a.tipo_documento_id || '').localeCompare(String(b.tipo_documento_id || ''))
+						);
+
+						docsGrupoOrdenados.forEach(doc => {
 							excelRows.push({
 								"Columna": doc.descripcion_alcance || doc.alcance || '',
-								"Tipo": doc.descripcion_tipo_documento || doc.tipo_documento || 
-									(doc.tipo_documento_id === '01' ? 'Carta de Presentación' : doc.tipo_documento_id === '02' ? 'Otros' : doc.tipo_documento_id || ''),
+								"Tipo": doc.tipo_documento_id 
+									? `${doc.tipo_documento_id} - ${doc.descripcion_tipo_documento || doc.tipo_documento || (doc.tipo_documento_id === '01' ? 'Carta de Presentación' : doc.tipo_documento_id === '02' ? 'Otros' : '')}`
+									: (doc.descripcion_tipo_documento || doc.tipo_documento || ''),
 								"Vigencia": formatearFechaLocal(doc.fecha_vigencia),
 								"Estado": doc.estado_documento === 'V' ? 'VIGENTE' : 'VENCIDO',
 								"Ruta": doc.ruta_documento || '',
@@ -560,8 +583,9 @@ export default function DocumentsPage() {
 										<td style={styles.td}>{item.nro_documento}</td>
 										<td style={styles.td}>
 											{
-												item.razon_social ||
-												`${item.nombre || ''} ${item.apellido_paterno || ''} ${item.apellido_materno || ''}`
+												item.tipo_documento === '06' || item.tipo_documento === 'RUC'
+												? item.razon_social || 'No registrada'
+												: `${item.nombre || ''} ${item.apellido_paterno || ''} ${item.apellido_materno || ''}`.trim() || 'No registrado'
 											}
 										</td>
 										<td style={styles.td}>
@@ -589,10 +613,53 @@ export default function DocumentsPage() {
 							<div style={{ ...styles.infoBlock, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
 								<div>
 									<p style={styles.infoLine}>
-										<b>Razón Social:</b>{' '}
+										<b>Tipo Documento:</b>{' '}
+										{proveedorSeleccionado.descripcion_tipo_documento 
+											? `${proveedorSeleccionado.tipo_documento ? proveedorSeleccionado.tipo_documento + ' - ' : ''}${proveedorSeleccionado.descripcion_tipo_documento}`
+											: proveedorSeleccionado.tipo_documento || 'No especificado'}
+									</p>
+									<p style={styles.infoLine}>
+										<b>Nro. Documento:</b>{' '}
+										{proveedorSeleccionado.nro_documento || 'No especificado'}
+									</p>
+
+									{proveedorSeleccionado.tipo_documento === '06' || proveedorSeleccionado.tipo_documento === 'RUC' ? (
+										<p style={styles.infoLine}>
+											<b>Razón Social:</b>{' '}
+											{proveedorSeleccionado.razon_social || 'No registrada'}
+										</p>
+									) : (
+										<>
+											<p style={styles.infoLine}>
+												<b>Nombre:</b>{' '}
+												{proveedorSeleccionado.nombre || 'No registrado'}
+											</p>
+											<p style={styles.infoLine}>
+												<b>Apellido Paterno:</b>{' '}
+												{proveedorSeleccionado.apellido_paterno || 'No registrado'}
+											</p>
+											<p style={styles.infoLine}>
+												<b>Apellido Materno:</b>{' '}
+												{proveedorSeleccionado.apellido_materno || 'No registrado'}
+											</p>
+										</>
+									)}
+
+									<p style={styles.infoLine}>
+										<b>Tipo Empresa:</b>{' '}
 										{
-											proveedorSeleccionado.razon_social ||
-											`${proveedorSeleccionado.nombre || ''} ${proveedorSeleccionado.apellido_paterno || ''} ${proveedorSeleccionado.apellido_materno || ''}`
+											proveedorSeleccionado.codigo_regimen_tributario || proveedorSeleccionado.regimen_tributario
+												? `${proveedorSeleccionado.codigo_regimen_tributario || proveedorSeleccionado.regimen_tributario} - ${proveedorSeleccionado.descripcion_regimen_tributario || ''}`
+												: (proveedorSeleccionado.descripcion_regimen_tributario || proveedorSeleccionado.regimen_tributario || 'No especificado')
+										}
+									</p>
+
+									<p style={styles.infoLine}>
+										<b>Nro. Trabajadores:</b>{' '}
+										{
+											proveedorSeleccionado.nro_trabajadores
+												? `${proveedorSeleccionado.nro_trabajadores} - ${proveedorSeleccionado.descripcion_nro_trabajadores || ''}`
+												: (proveedorSeleccionado.descripcion_nro_trabajadores || proveedorSeleccionado.nro_trabajadores || 'No especificado')
 										}
 									</p>
 
@@ -663,9 +730,9 @@ export default function DocumentsPage() {
 								{textoGrupo}
 							</div>
 
-							{/* Botón Agregar: solo para ADMIN y PROVEEDOR */}
+							{/* Botón Agregar: solo para ADMIN y PROVEEDOR, y solo si NO hay un filtro activo */}
 							<div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-								{puedeEscribir && (
+								{puedeEscribir && !estadoFiltroUrl && (
 									<button
 										style={styles.btnPrimary}
 										onClick={() => {
@@ -678,6 +745,17 @@ export default function DocumentsPage() {
 									</button>
 								)}
 							</div>
+
+							{estadoFiltroUrl && (
+								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px' }}>
+									<span style={{ fontSize: '14px', color: '#1e40af', fontWeight: 500 }}>
+										Filtrando documentos por estado: <strong>{estadoFiltroUrl.replace('_', ' ')}</strong>
+									</span>
+									<button onClick={limpiarFiltro} style={{ background: '#fff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', color: '#1e40af', cursor: 'pointer', fontWeight: 600 }}>
+										Quitar Filtro
+									</button>
+								</div>
+							)}
 
 							<div className="table-scroll">
 							<table style={styles.table}>
@@ -694,15 +772,39 @@ export default function DocumentsPage() {
 
 								<tbody>
 
-									{documentos.length === 0 && (
-										<tr>
-											<td colSpan={5} style={{...styles.td, textAlign:'center', color: colors.textMuted}}>
-												No hay documentos registrados en este grupo.
-											</td>
-										</tr>
-									)}
+									{(() => {
+                                        const hoy = new Date();
+                                        hoy.setHours(0,0,0,0);
+                                        const en7Dias = new Date(hoy);
+                                        en7Dias.setDate(en7Dias.getDate() + 7);
+                                        
+                                        const documentosFiltrados = documentos.filter(item => {
+                                            if (!estadoFiltroUrl) return true;
+                                            
+                                            const fVigencia = new Date(item.fecha_vigencia);
+                                            if (estadoFiltroUrl === 'VENCIDOS') {
+                                                return item.estado_documento === 'C' || fVigencia < hoy;
+                                            }
+                                            if (estadoFiltroUrl === 'POR_VENCER') {
+                                                return item.estado_documento === 'V' && fVigencia >= hoy && fVigencia <= en7Dias;
+                                            }
+                                            if (estadoFiltroUrl === 'VIGENTES') {
+                                                return item.estado_documento === 'V' && fVigencia >= hoy;
+                                            }
+                                            return true;
+                                        });
 
-									{documentos.map(item => (
+                                        if (documentosFiltrados.length === 0) {
+                                            return (
+                                                <tr>
+                                                    <td colSpan={5} style={{...styles.td, textAlign:'center', color: colors.textMuted}}>
+                                                        No hay documentos registrados en este grupo con el filtro seleccionado.
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+
+                                        return documentosFiltrados.map(item => (
 
 										<tr key={item.documento_id}>
 										
@@ -710,9 +812,9 @@ export default function DocumentsPage() {
 
 											<td style={styles.td}>
 												{
-													item.descripcion_tipo_documento ||
-													item.tipo_documento ||
-													(item.tipo_documento_id === '01' ? 'Carta de Presentación' : item.tipo_documento_id === '02' ? 'Otros' : item.tipo_documento_id)
+													item.tipo_documento_id 
+													? `${item.tipo_documento_id} - ${item.descripcion_tipo_documento || item.tipo_documento || (item.tipo_documento_id === '01' ? 'Carta de Presentación' : item.tipo_documento_id === '02' ? 'Otros' : '')}`
+													: (item.descripcion_tipo_documento || item.tipo_documento || 'No especificado')
 												}
 											</td>
 
@@ -757,12 +859,12 @@ export default function DocumentsPage() {
 
 												</div>
 											</td>
-
 										</tr>
 
-									))}
+                                        ));
+                                    })()}
 
-								</tbody>
+									</tbody>
 
 							</table>
 							</div>

@@ -4,7 +4,7 @@ const actualizarEstadosDocumentos =
 async () => {
 
     const vencidosSql = `
-        UPDATE "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
+        UPDATE "SISGES"."MOV_DOCUMENTOS"
         SET estado_documento = 'C',
             last_update = CURRENT_DATE
         WHERE fecha_vigencia <= CURRENT_DATE
@@ -13,7 +13,7 @@ async () => {
     `;
 
     const vigentesSql = `
-        UPDATE "SISGES_PRUEBAS"."MOV_DOCUMENTOS"
+        UPDATE "SISGES"."MOV_DOCUMENTOS"
         SET estado_documento = 'V',
             last_update = CURRENT_DATE
         WHERE fecha_vigencia > CURRENT_DATE

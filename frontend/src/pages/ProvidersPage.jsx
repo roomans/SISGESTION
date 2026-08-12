@@ -307,6 +307,20 @@ export default function ProvidersPage() {
         }
     }, [esProveedor]);
 
+    // Catálogos iniciales para filtros de búsqueda
+    useEffect(() => {
+        const cargarCatalogosFiltro = async () => {
+            try {
+                const res = await obtenerCatalogo('0100', 'TIPO_REGIMEN');
+                const list = res?.data || res || [];
+                setRegimenesTributarios(Array.isArray(list) ? list : []);
+            } catch (error) {
+                console.error("Error al cargar regímenes tributarios:", error);
+            }
+        };
+        cargarCatalogosFiltro();
+    }, []);
+
     // Catálogos iniciales (necesarios para el formulario de autoregistro)
     useEffect(() => {
         if (esProveedor && !miProveedorId) {
@@ -415,7 +429,7 @@ export default function ProvidersPage() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!form.regimen_tributario) {
-            newErrors.regimen_tributario = 'El régimen tributario es obligatorio.';
+            newErrors.regimen_tributario = 'El tipo de empresa es obligatorio.';
         }
 
         if (!form.tipo_documento) {
@@ -467,10 +481,6 @@ export default function ProvidersPage() {
 
         if (!form.telefono || !form.telefono.trim()) {
             newErrors.telefono = 'El teléfono es obligatorio.';
-        } else if (!soloNumeros.test(form.telefono)) {
-            newErrors.telefono = 'El teléfono debe contener solo números.';
-        } else if (form.telefono.length < 7 || form.telefono.length > 9) {
-            newErrors.telefono = 'El teléfono debe tener entre 7 y 9 dígitos.';
         }
 
         if (!form.departamento) {
@@ -568,7 +578,7 @@ export default function ProvidersPage() {
             titulo: 'SISGESTION',
             subtitulo: 'Listado de Proveedores',
             columnas: [
-                { titulo: 'Régimen Tributario', campo: 'regimen_tributario', ancho: 30 },
+                { titulo: 'Tipo Empresa', campo: 'regimen_tributario', ancho: 30 },
                 { titulo: 'Tipo Documento', campo: 'tipo_documento', ancho: 35 },
                 { titulo: 'N° Documento', campo: 'nro_documento', ancho: 20 },
                 { titulo: 'Razón Social', campo: 'proveedor', ancho: 45 },
@@ -583,6 +593,26 @@ export default function ProvidersPage() {
 
     // ── Control de búsqueda dinámico ──────────────────────────────────────────
     const renderControlBusqueda = () => {
+        if (campoBusqueda === 'regimen_tributario') {
+            return (
+                <select
+                    value={valorBusqueda}
+                    onChange={(e) => setValorBusqueda(e.target.value)}
+                    style={styles.searchInput}
+                >
+                    <option value="">-- Seleccione --</option>
+                    {regimenesTributarios.map((item) => {
+                        const code = item.codigo_valor || item.codigo;
+                        const desc = item.descripcion || item.label;
+                        return (
+                            <option key={code} value={code}>
+                                {code ? `${code} - ${desc}` : desc}
+                            </option>
+                        );
+                    })}
+                </select>
+            );
+        }
         if (campoBusqueda === 'estado') {
             return (
                 <select
@@ -654,9 +684,9 @@ export default function ProvidersPage() {
 
                     <form noValidate onSubmit={guardarAutoregistro} style={styles.card}>
                         {/* --- GRUPO 1: IDENTIDAD --- */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '15px' }}>
                             <div>
-                                <label style={styles.labelForm}>Régimen Tributario *</label>
+                                <label style={styles.labelForm}>Tipo Empresa *</label>
                                 <select 
                                     style={{ ...styles.inputForm, marginBottom: errors.regimen_tributario ? '5px' : '0' }} 
                                     value={form.regimen_tributario} 
@@ -665,7 +695,7 @@ export default function ProvidersPage() {
                                         setErrors(prev => ({ ...prev, regimen_tributario: null }));
                                     }}
                                 >
-                                    <option value="">Seleccione Régimen</option>
+                                    <option value="">Seleccione Tipo Empresa</option>
                                     {regimenesTributarios.map((r, index) => {
                                         const code = r.codigo_valor || r.codigo;
                                         const desc = r.descripcion || r.label;
@@ -673,6 +703,26 @@ export default function ProvidersPage() {
                                     })}
                                 </select>
                                 {errors.regimen_tributario && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.regimen_tributario}</span>}
+                            </div>
+                            <div>
+                                <label style={styles.labelForm}>Nro. de Trabajadores *</label>
+                                <select 
+                                    required 
+                                    style={{ ...styles.inputForm, marginBottom: errors.nro_trabajadores ? '5px' : '0' }} 
+                                    value={form.nro_trabajadores} 
+                                    onChange={e => {
+                                        setForm({ ...form, nro_trabajadores: e.target.value });
+                                        setErrors(prev => ({ ...prev, nro_trabajadores: null }));
+                                    }}
+                                >
+                                    <option value="">Seleccione</option>
+                                    {nroTrabajadoresList.map((n, index) => {
+                                        const code = n.codigo_valor || n.codigo;
+                                        const label = n.descripcion || n.label;
+                                        return <option key={index} value={code}>{code} - {label}</option>;
+                                    })}
+                                </select>
+                                {errors.nro_trabajadores && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.nro_trabajadores}</span>}
                             </div>
                             <div>
                                 <label style={styles.labelForm}>Tipo Documento *</label>
@@ -906,51 +956,29 @@ export default function ProvidersPage() {
                         </div>
 
                         {/* --- GRUPO 6: ACTIVIDAD ECONÓMICA --- */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px' }}>
-                            <div>
-                                <label style={styles.labelForm}>Actividad Económica (CIIU) *</label>
-                                <select 
-                                    required 
-                                    style={{ ...styles.inputForm, marginBottom: errors.ciiu ? '5px' : '0' }} 
-                                    value={form.ciiu} 
-                                    onChange={e => {
-                                        setForm({ ...form, ciiu: e.target.value });
-                                        setErrors(prev => ({ ...prev, ciiu: null }));
-                                    }}
-                                >
-                                    <option value="">Seleccione Actividad</option>
-                                    {ciius.map((c, index) => {
-                                        const obj = Object.keys(c).reduce((acc, key) => {
-                                            acc[key.toLowerCase()] = c[key];
-                                            return acc;
-                                        }, {});
-                                        const code = obj.codigo_valor || obj.ciiu || obj.id_ciiu || obj.nro_ciiu || obj.code || obj.codigo || obj.id_catalogo;
-                                        const label = obj.label || obj.descripcion || obj.nombre || obj.actividad || obj.descripcion_ciiu;
-                                        return <option key={index} value={code}>{code} - {label}</option>;
-                                    })}
-                                </select>
-                                {errors.ciiu && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.ciiu}</span>}
-                            </div>
-                            <div>
-                                <label style={styles.labelForm}>Nro. de Trabajadores *</label>
-                                <select 
-                                    required 
-                                    style={{ ...styles.inputForm, marginBottom: errors.nro_trabajadores ? '5px' : '0' }} 
-                                    value={form.nro_trabajadores} 
-                                    onChange={e => {
-                                        setForm({ ...form, nro_trabajadores: e.target.value });
-                                        setErrors(prev => ({ ...prev, nro_trabajadores: null }));
-                                    }}
-                                >
-                                    <option value="">Seleccione</option>
-                                    {nroTrabajadoresList.map((n, index) => {
-                                        const code = n.codigo_valor || n.codigo;
-                                        const label = n.descripcion || n.label;
-                                        return <option key={index} value={code}>{code} - {label}</option>;
-                                    })}
-                                </select>
-                                {errors.nro_trabajadores && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.nro_trabajadores}</span>}
-                            </div>
+                        <div style={{ marginBottom: '25px' }}>
+                            <label style={styles.labelForm}>Actividad Económica (CIIU) *</label>
+                            <select 
+                                required 
+                                style={{ ...styles.inputForm, marginBottom: errors.ciiu ? '5px' : '0' }} 
+                                value={form.ciiu} 
+                                onChange={e => {
+                                    setForm({ ...form, ciiu: e.target.value });
+                                    setErrors(prev => ({ ...prev, ciiu: null }));
+                                }}
+                            >
+                                <option value="">Seleccione Actividad</option>
+                                {ciius.map((c, index) => {
+                                    const obj = Object.keys(c).reduce((acc, key) => {
+                                        acc[key.toLowerCase()] = c[key];
+                                        return acc;
+                                    }, {});
+                                    const code = obj.codigo_valor || obj.ciiu || obj.id_ciiu || obj.nro_ciiu || obj.code || obj.codigo || obj.id_catalogo;
+                                    const label = obj.label || obj.descripcion || obj.nombre || obj.actividad || obj.descripcion_ciiu;
+                                    return <option key={index} value={code}>{code} - {label}</option>;
+                                })}
+                            </select>
+                            {errors.ciiu && <span style={{ color: '#dc2626', fontSize: '12.5px', display: 'block', fontWeight: '500', marginTop: '5px' }}>{errors.ciiu}</span>}
                         </div>
 
                         <button type="submit" style={{ ...styles.btnPrimary, width: '100%', padding: '12px' }}>
@@ -994,16 +1022,28 @@ export default function ProvidersPage() {
                         {/* --- GRUPO 1: IDENTIDAD --- */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '25px', paddingBottom: '20px', borderBottom: `1px solid ${colors.border}` }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>RÉGIMEN TRIBUTARIO</label>
+                                <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>TIPO EMPRESA</label>
                                 <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
-                                    {proveedores[0]?.descripcion_regimen_tributario 
-                                        ? `${proveedores[0]?.regimen_tributario || proveedores[0]?.codigo_regimen_tributario ? (proveedores[0]?.regimen_tributario || proveedores[0]?.codigo_regimen_tributario) + ' - ' : ''}${proveedores[0]?.descripcion_regimen_tributario}`
-                                        : proveedores[0]?.regimen_tributario || 'No registrado'}
+                                    {proveedores[0]?.codigo_regimen_tributario || proveedores[0]?.regimen_tributario
+                                        ? `${proveedores[0]?.codigo_regimen_tributario || proveedores[0]?.regimen_tributario} - ${proveedores[0]?.descripcion_regimen_tributario || ''}`
+                                        : (proveedores[0]?.descripcion_regimen_tributario || proveedores[0]?.regimen_tributario || 'No especificado')}
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>NRO. TRABAJADORES</label>
+                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
+                                    {proveedores[0]?.nro_trabajadores
+                                        ? `${proveedores[0]?.nro_trabajadores} - ${proveedores[0]?.descripcion_nro_trabajadores || ''}`
+                                        : (proveedores[0]?.descripcion_nro_trabajadores || proveedores[0]?.nro_trabajadores || 'No especificado')}
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>TIPO DOCUMENTO</label>
-                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.descripcion_tipo_documento || proveedores[0]?.tipo_documento}</div>
+                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
+                                    {proveedores[0]?.descripcion_tipo_documento 
+                                        ? `${proveedores[0]?.tipo_documento ? proveedores[0]?.tipo_documento + ' - ' : ''}${proveedores[0]?.descripcion_tipo_documento}`
+                                        : (proveedores[0]?.tipo_documento || 'No especificado')}
+                                </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>NÚMERO DE DOCUMENTO</label>
@@ -1073,6 +1113,10 @@ export default function ProvidersPage() {
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>DISTRITO / CIUDAD</label>
                                 <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.ciudad || 'No registrado'}</div>
                             </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>UBIGEO</label>
+                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>{proveedores[0]?.ubigeo || 'No registrado'}</div>
+                            </div>
                         </div>
 
                         {/* --- GRUPO 5: DIRECCIÓN --- */}
@@ -1089,12 +1133,6 @@ export default function ProvidersPage() {
                                 <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>ACTIVIDAD ECONÓMICA (CIIU)</label>
                                 <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
                                     {proveedores[0]?.ciiu ? `${proveedores[0].ciiu} - ${proveedores[0]?.descripcion_ciiu || ''}` : 'No especificada'}
-                                </div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '11px', color: colors.textMuted, fontWeight: '700' }}>NRO DE PERSONAS</label>
-                                <div style={{ padding: '8px 0', fontSize: '14px', fontWeight: '500', color: colors.text }}>
-                                    {proveedores[0]?.descripcion_nro_trabajadores || proveedores[0]?.nro_trabajadores || 'No especificado'}
                                 </div>
                             </div>
                         </div>
@@ -1165,7 +1203,7 @@ export default function ProvidersPage() {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    <th style={styles.th}>Régimen Tributario</th>
+                                    <th style={styles.th}>Tipo Empresa</th>
                                     <th style={styles.th}>Tipo Documento</th>
                                     <th style={styles.th}>Nro Documento</th>
                                     <th style={styles.th}>Razón Social</th>
@@ -1190,9 +1228,13 @@ export default function ProvidersPage() {
                                         <td style={styles.td}>{item.pagina_web}</td>
                                         <td style={styles.td}>{item.actividad_economica}</td>
                                         <td style={styles.td}>
-                                            <span style={styles.badge(item.estado_documentos === 'VIGENTES')}>
-                                                {item.estado_documentos}
-                                            </span>
+                                            {item.estado_documentos ? (
+                                                <span style={styles.badge(item.estado_documentos === 'VIGENTES')}>
+                                                    {item.estado_documentos}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>-</span>
+                                            )}
                                         </td>
                                         <td style={styles.td}>
                                             <span style={styles.badge(item.estado === 'ACTIVO')}>
